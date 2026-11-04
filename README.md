@@ -50,6 +50,21 @@
 
 ---
 
+## 📦 دانلود مستقیم نسخه‌های آماده (Direct Portable Download)
+
+نیازی به نصب یا کامپایل هیچ پیش‌نیازی ندارید! می‌توانید فایل اجرایی سیستم‌عامل خود را مستقیماً دریافت کنید:
+
+| سیستم‌عامل / پلتفرم | نوع فایل | لینک دانلود مستقیم از Release |
+| :--- | :--- | :--- |
+| 🪟 **ویندوز (Windows x64)** | ZIP آرشیو (سریع و آماده) | [📥 دانلود نسخه ویندوز (.zip)](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-v2.6.0-windows-amd64.zip) |
+| 🪟 **ویندوز (Windows x64)** | فایل اجرایی مستقیم (`.exe`) | [📥 دانلود antigravity.exe](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity.exe) |
+| 🐧 **لینوکس (Linux x86_64)** | باینری لینوکس | [📥 دانلود نسخه لینوکس 64 بیتی](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-linux-amd64) |
+| 🐧 **لینوکس (Linux ARM64)** | باینری لینوکس ARM | [📥 دانلود نسخه لینوکس ARM64](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-linux-arm64) |
+| 🍎 **مک‌او‌اس (macOS Apple Silicon)** | باینری M1 / M2 / M3 / M4 | [📥 دانلود نسخه مک اپل سیلیکون](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-darwin-arm64) |
+| 🍎 **مک‌او‌اس (macOS Intel)** | باینری اینتل مک | [📥 دانلود نسخه مک اینتل](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-darwin-amd64) |
+
+---
+
 ## 🚀 راهنمای سریع استفاده (ویندوز)
 
 ### روش ۱: استفاده از باینری آماده (بدون نیاز به نصب گو)
