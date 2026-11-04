@@ -56,42 +56,61 @@
 
 | سیستم‌عامل / پلتفرم | نوع فایل | لینک دانلود مستقیم از Release |
 | :--- | :--- | :--- |
-| 🪟 **ویندوز (Windows x64)** | ZIP آرشیو (سریع و آماده) | [📥 دانلود نسخه ویندوز (.zip)](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-v2.6.0-windows-amd64.zip) |
-| 🪟 **ویندوز (Windows x64)** | فایل اجرایی مستقیم (`.exe`) | [📥 دانلود antigravity.exe](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity.exe) |
-| 🐧 **لینوکس (Linux x86_64)** | باینری لینوکس | [📥 دانلود نسخه لینوکس 64 بیتی](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-linux-amd64) |
+| 🖥️ **نسخه گرافیکی ویندوز (پیشنهادی)** | بدون نیاز به کد و ترمینال (`.exe`) | [📥 دانلود antigravity-gui.exe](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-gui.exe) |
+| 🪟 **آرشیو نسخه گرافیکی ویندوز** | ZIP پرتابل بدون کنسول | [📥 دانلود نسخه گرافیکی (.zip)](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-v2.6.0-windows-gui.zip) |
+| 🪟 **نسخه ترمینال ویندوز (CLI)** | فایل اجرایی مستقیم (`.exe`) | [📥 دانلود antigravity.exe](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity.exe) |
+| 🪟 **آرشیو ترمینال ویندوز** | ZIP نسخه کنسول | [📥 دانلود نسخه CLI (.zip)](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-v2.6.0-windows-amd64.zip) |
+| 🐧 **لینوکس (Linux x86_64)** | باینری لینوکس 64 بیتی | [📥 دانلود نسخه لینوکس 64](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-linux-amd64) |
 | 🐧 **لینوکس (Linux ARM64)** | باینری لینوکس ARM | [📥 دانلود نسخه لینوکس ARM64](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-linux-arm64) |
-| 🍎 **مک‌او‌اس (macOS Apple Silicon)** | باینری M1 / M2 / M3 / M4 | [📥 دانلود نسخه مک اپل سیلیکون](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-darwin-arm64) |
+| 🍎 **مک‌او‌اس (macOS Apple Silicon)** | باینری تراشه‌های M1 تا M4 | [📥 دانلود نسخه مک اپل سیلیکون](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-darwin-arm64) |
 | 🍎 **مک‌او‌اس (macOS Intel)** | باینری اینتل مک | [📥 دانلود نسخه مک اینتل](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-location-fixer-darwin-amd64) |
 
 ---
 
-## 🚀 راهنمای سریع استفاده (ویندوز)
+## 🎯 آموزش ۰ تا ۱۰۰ پچ کردن و ورود به اکانت (بدون نیاز به یک خط کد!)
 
-### روش ۱: استفاده از باینری آماده (بدون نیاز به نصب گو)
+اگر با ترمینال یا دستورات کامپیوتری آشنایی ندارید، این راهنما دقیقاً برای شماست:
 
-۱. پروژه را کلون کنید یا فایل اجرایی `antigravity.exe` را دانلود کنید:
+### گام ۱: دانلود برنامه گرافیکی
+- روی لینک [📥 دانلود مستقیم antigravity-gui.exe](https://github.com/IrMaho/antigravity-location-fixer-2.6.0/releases/download/v2.6.0/antigravity-gui.exe) کلیک کنید.
+
+### گام ۲: بستن ادیتور
+- اگر برنامه Antigravity IDE در حال اجراست، آن را ببندید تا فایل‌های برنامه آزاد باشند.
+
+### گام ۳: اجرای برنامه گرافیکی با یک دابل‌کلیک
+- روی فایل `antigravity-gui.exe` دو بار کلیک کنید.
+- یک پنجره گرافیکی و کلاسیک زیبا (بدون هیچ صفحه سیاه CMD) باز می‌شود.
+- برنامه به صورت خودکار مسیر نصب Antigravity IDE را روی ویندوز شما پیدا می‌کند.
+
+### گام ۴: زدن دکمه Auto-Fix
+- کافیست روی دکمه اول: **`① ⚡ Auto-Fix`** کلیک کنید.
+- چند ثانیه بعد نوار وضعیت سبز شده و پیام زیر را نمایش می‌دهد:
+  `✔ All 4 targets patched & Zero-Telemetry enabled!`
+- برنامه به طور خودکار:
+  1. مشکل گیر کردن روی دانلود ۱۰٪ (`Downloading Backend`) را برطرف می‌کند.
+  2. قفل تحریم و چک لوکیشن (ارور ۴۰۳ گوگل) را باز می‌کند.
+  3. دسترسی‌های اینترنال توسعه‌دهندگان گوگل را فعال می‌کند.
+  4. شورت‌کات دسکتاپ بهینه‌شده را ایجاد می‌کند.
+
+### گام ۵: ورود به اکانت (Login)
+1. فیلترشکن یا پروکسی سیستمتان (مثل V2RayN یا Clash) را روشن کنید.
+2. برنامه Antigravity IDE را باز کنید.
+3. روی دکمه آبی‌رنگ **Continue with Google** کلیک کنید.
+4. صفحه ورود در یک تب جدید در همان مرورگر گوگل کروم باز می‌شود که اکانت‌هایتان در آن لاگین هستند.
+5. روی اکانت خود کلیک کنید تا وارد شوید. ادیتور فوراً متصل شده و تمامی مدل‌های هوش مصنوعی فعال می‌شوند!
+
+---
+
+## 💻 راهنمای متنی برای کاربران ترمینال (اختیاری)
+
+اگر ترجیح می‌دهید از خط فرمان استفاده کنید:
+
 ```powershell
-git clone https://github.com/IrMaho/antigravity-location-fixer-2.6.0.git
-cd antigravity-location-fixer-2.6.0
-```
-
-۲. بررسی وضعیت سیستم با دستور Doctor:
-```powershell
+# بررسی سلامت اتصالات و پچ‌ها:
 .\antigravity.exe doctor
-```
 
-۳. اجرای پچ خودکار با یک کلیک:
-```powershell
+# اجرای پچ خودکار کامل با یک دستور:
 .\antigravity.exe autofix
-```
-
-۴. پچ اختصاصی بخش‌ها (در صورت نیاز):
-```powershell
-# فقط پچ موتور اصلی و بک‌اند (agy.exe و language_server):
-.\antigravity.exe patch core
-
-# فقط پچ محیط ادیتور و اکستنشن (main.js و extension.js):
-.\antigravity.exe patch ide
 ```
 
 ---
