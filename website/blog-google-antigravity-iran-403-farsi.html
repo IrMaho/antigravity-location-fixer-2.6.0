@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آموزش جامع رفع تحریم و ارورهای گوگل آنتی‌گرویتی در ایران (حل خطای ۴۰۳، ۴۰۰، ۴۲۹ و قطعی استریم)</title>
+
+    <!-- SEO & GEO Meta Tags -->
+    <meta name="description"
+        content="راهنمای جامع و کاربردی برای برنامه‌نویسان ایرانی: رفع خودکار ارور ۴۰۳، خطای ۴۰۰ عدم پشتیبانی لوکیشن، ارور ۴۲۹ سهمیه و قطعی استریم کدنویسی (write EIO) در Google Antigravity بدون نیاز به تنظیمات دستی و بدون حالت سنگین TUN.">
+    <meta name="keywords"
+        content="رفع ارور 403 گوگل آنتی گرویتی, تحریم گوگل آنتی گرویتی, وصل کردن v2ray به antigravity, رفع خطای Your current account is not eligible, خطای User location is not supported, ارور 429 antigravity, رفع ارور write EIO, پروکسی antigravity, اجرای antigravity در ایران, دور زدن تحریم گوگل آنتی گرویتی, آنتی گرویتی فیکسر, antigravity fixer, antigravity cleaner">
+    <meta name="author" content="Tawroot & جامعه متن‌باز Antigravity Cleaner">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <link rel="canonical" href="https://tawroot.github.io/antigravity-cleaner/blog-google-antigravity-iran-403-farsi.html">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://tawroot.github.io/antigravity-cleaner/blog-google-antigravity-iran-403-farsi.html">
+    <meta property="og:title" content="آموزش جامع رفع تحریم و ارورهای گوگل آنتی‌گرویتی در ایران (حل ارور ۴۰۳، ۴۰۰ و ۴۲۹)">
+    <meta property="og:description"
+        content="حل قطعی و خودکار خطای ۴۰۳، تحریم ریجن، قطعی استریم چت هوش مصنوعی و ارور سهمیه ۴۲۹ در Google Antigravity با ابزار متن‌باز و آفلاین Antigravity Cleaner.">
+    <meta property="og:image" content="https://raw.githubusercontent.com/tawroot/antigravity-cleaner/main/website/og-image.png">
+
+    <!-- Schema.org JSON-LD (TechArticle + FAQPage + BreadcrumbList) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "خانه",
+              "item": "https://tawroot.github.io/antigravity-cleaner/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "وبلاگ",
+              "item": "https://tawroot.github.io/antigravity-cleaner/blog.html"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "راهنمای رفع تحریم و ارورهای گوگل آنتی‌گرویتی در ایران",
+              "item": "https://tawroot.github.io/antigravity-cleaner/blog-google-antigravity-iran-403-farsi.html"
+            }
+          ]
+        },
+        {
+          "@type": "TechArticle",
+          "headline": "آموزش جامع رفع تحریم و تمامی ارورهای گوگل آنتی‌گرویتی در ایران",
+          "description": "راهنمای تخصصی و گام‌به‌گام برای رفع خطاهای ۴۰۳، ۴۰۰، ۴۲۹ و قطعی استریم کدنویسی در گوگل آنتی‌گرویتی با ابزار خودکار Antigravity Cleaner بدون حالت TUN.",
+          "inLanguage": "fa",
+          "author": {
+            "@type": "Organization",
+            "name": "Antigravity Cleaner"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "Antigravity Cleaner",
+            "url": "https://tawroot.github.io/antigravity-cleaner/"
+          },
+          "datePublished": "2026-09-16",
+          "dateModified": "2026-10-29",
+          "proficiencyLevel": "Intermediate"
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "چرا با وجود روشن بودن فیلترشکن، ارور ۴۰۳ یا Your current account is not eligible دریافت می‌کنیم؟",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "گوگل آنتی‌گرویتی علاوه بر بررسی آی‌پی در سرور، قبل از اتصال با توابع محلی کلاینت (در فایلهای main.js و ماژول باینری ادیتور) وضعیت سیستم را بررسی می‌کند. همچنین در فیلترشکن‌های معمولی به دلیل نشت DNS یا قطع و وصل لحظه‌ای، موقعیت ایران ثبت شده و سشن مسدود می‌گردد. با ابزار Antigravity Cleaner این توابع به صورت کامل پچ و خنثی می‌شوند."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "آیا برای وصل کردن پروکسی به آنتی‌گرویتی نیازی به تنظیم دستی پورت یا حالت TUN است؟",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "خیر! ابزار Antigravity Cleaner پورت‌های لوکال کلاینت‌های محبوب مانند v2rayN، کلش، نکوباکس، هیدیفای و مهومو را به صورت خودکار شناسایی کرده و ترافیک ادیتور را به صورت ایزوله و بدون افت سرعت به آن متصل می‌کند؛ بدون اینکه نیاز باشد حالت سنگین TUN را فعال کنید یا تنظیمات کل سیستم را تغییر دهید."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "علت قطع شدن ناگهانی کدنویسی وسط چت با ارور Agent terminated due to error چیست؟",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "این مشکل به دلیل سرریز لاگ‌های دیباگ ادیتور و ریست شدن ارتباط استریم توسط سیستم فیلترینگ داخلی رخ می‌دهد. ابزار Antigravity Cleaner با فعال‌سازی شیلد ASAR و ارسال خودکار پکت‌های ضربان قلب (KeepAlive هر ۱۵ ثانیه)، ارتباط استریم را کاملاً پایدار نگه می‌دارد."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "خطای ۴۲۹ Quota Exhausted چگونه برطرف می‌شود؟ آیا تاریخچه چت‌ها پاک خواهد شد؟",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "دستور antigravity-cleaner clean فقط باکت‌های قفل‌شده کش سهمیه را پاکسازی می‌کند و ۱۰۰٪ لاگین‌ها، کوکی‌ها و پروژه‌های شما سالم و دست‌نخورده باقی می‌مانند."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="assets/icon.png">
+    <link rel="stylesheet" href="styles.css?v=5.3.1-pro">
+
+    <style>
+        body {
+            font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            letter-spacing: normal;
+        }
+        .article-container {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: calc(var(--vp-nav-height) + 32px) 24px 80px;
+        }
+        .article-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--vp-c-brand-soft);
+            color: var(--vp-c-brand);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            padding: 6px 14px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+        .article-body {
+            color: var(--vp-c-text-1);
+            line-height: 1.95;
+            font-size: 1.08rem;
+        }
+        .article-body h1 {
+            color: var(--vp-c-text-1);
+            font-size: clamp(1.9rem, 4vw, 2.5rem);
+            font-weight: 900;
+            line-height: 1.35;
+            margin: 12px 0 20px;
+        }
+        .article-body h2 {
+            color: var(--vp-c-text-1);
+            margin: 44px 0 18px;
+            font-size: 1.65rem;
+            font-weight: 800;
+            border-bottom: 2px solid var(--vp-c-border);
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .article-body h3 {
+            color: var(--vp-c-brand);
+            margin: 30px 0 14px;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        .article-body p {
+            margin-bottom: 20px;
+            color: var(--vp-c-text-2);
+            text-align: justify;
+        }
+        .article-body strong {
+            color: var(--vp-c-text-1);
+        }
+        .article-body ul, .article-body ol {
+            margin: 16px 24px 28px;
+            color: var(--vp-c-text-2);
+        }
+        .article-body li {
+            margin-bottom: 12px;
+            line-height: 1.85;
+        }
+        .star-banner {
+            background: linear-gradient(135deg, var(--vp-c-brand-soft) 0%, rgba(37, 99, 235, 0.04) 100%);
+            border: 1px solid var(--vp-c-brand);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin: 32px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-1);
+        }
+        .star-banner strong {
+            color: var(--vp-c-text-1);
+            font-size: 1.15rem;
+        }
+        .star-banner p {
+            color: var(--vp-c-text-2);
+            margin: 6px 0 0;
+            font-size: 0.95rem;
+        }
+        .tech-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 28px 0;
+            background: var(--vp-c-bg-elv);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--vp-c-border);
+            box-shadow: var(--shadow-1);
+        }
+        .tech-table th {
+            background: var(--vp-c-bg-soft);
+            color: var(--vp-c-brand);
+            font-weight: 800;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--vp-c-border);
+            font-size: 0.95rem;
+            text-align: right;
+        }
+        .tech-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--vp-c-border);
+            color: var(--vp-c-text-1);
+            font-size: 0.95rem;
+            vertical-align: middle;
+        }
+        .tech-table tr:last-child td {
+            border-bottom: none;
+        }
+        .tech-table tr:hover td {
+            background: var(--vp-c-bg-soft);
+        }
+        .code-snippet {
+            direction: ltr !important;
+            text-align: left !important;
+            background: #0b1120;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-md);
+            padding: 18px 22px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: #38bdf8;
+            margin: 22px 0;
+            overflow-x: auto;
+            box-shadow: var(--shadow-1);
+            position: relative;
+        }
+        .code-snippet code {
+            font-family: var(--font-mono);
+            color: inherit;
+        }
+        .code-badge {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+        }
+        .info-box {
+            background: var(--vp-c-brand-soft);
+            border-inline-start: 4px solid var(--vp-c-brand);
+            padding: 18px 22px;
+            border-radius: var(--radius-md);
+            margin: 26px 0;
+            color: var(--vp-c-text-1);
+            line-height: 1.85;
+        }
+        .danger-box {
+            background: rgba(239, 68, 68, 0.08);
+            border-inline-start: 4px solid #ef4444;
+            padding: 18px 22px;
+            border-radius: var(--radius-md);
+            margin: 26px 0;
+            color: var(--vp-c-text-1);
+            line-height: 1.85;
+        }
+        .success-box {
+            background: rgba(16, 185, 129, 0.08);
+            border-inline-start: 4px solid #10b981;
+            padding: 18px 22px;
+            border-radius: var(--radius-md);
+            margin: 26px 0;
+            color: var(--vp-c-text-1);
+            line-height: 1.85;
+        }
+        .error-card {
+            background: var(--vp-c-bg-elv);
+            border: 1px solid var(--vp-c-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-1);
+            transition: border-color 0.2s ease;
+        }
+        .error-card:hover {
+            border-color: rgba(37, 99, 235, 0.4);
+        }
+        .error-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .error-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--vp-c-text-1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .error-tag {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: var(--radius-sm);
+        }
+        .tag-red { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .tag-amber { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .tag-blue { background: var(--vp-c-brand-soft); color: var(--vp-c-brand); border: 1px solid rgba(37, 99, 235, 0.3); }
+        .solution-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        .pill-cmd {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            direction: ltr;
+            display: inline-block;
+        }
+    </style>
+    <script>(function(){const t=localStorage.getItem('ag_theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+
+<body>
+    <div class="bg-animation"></div>
+
+    <header class="VPNav">
+    <div class="VPNav-wrapper">
+      <div class="VPNav-container">
+        <!-- Brand -->
+        <a href="index.html" class="VPNavBarTitle">
+          <img src="assets/logo.png" alt="Antigravity Cleaner Logo" class="VPImage logo" width="24" height="24">
+          <span class="title">Antigravity Cleaner</span>
+          <span class="version-badge">v5</span>
+        </a>
+
+        <!-- Center Nav -->
+        <div class="VPNavBarContent">
+          <nav class="VPNavBarMenu" aria-label="Main Navigation">
+            <a href="index.html" class="VPLink nav-link">Home</a>
+            <a href="index.html#docs" class="VPLink nav-link">Documentation</a>
+            <a href="troubleshooting.html" class="VPLink nav-link">Error Clinic</a>
+            <a href="faq.html" class="VPLink nav-link">FAQ</a>
+            <a href="blog.html" class="VPLink nav-link active">Blog</a>
+          </nav>
+        </div>
+
+        <!-- Right Tools -->
+        <div class="VPNavBarExtra">
+          <!-- Theme Switcher -->
+          <button class="VPSwitch VPSwitchAppearance" id="themeToggle" type="button" aria-label="Toggle theme">
+            <span class="check">
+              <span class="icon">
+                <svg class="sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+                <svg class="moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+              </span>
+            </span>
+          </button>
+
+          <!-- GitHub Link -->
+          <a href="https://github.com/tawroot/antigravity-cleaner" target="_blank" rel="noopener noreferrer" class="VPNavBarSocialLink" aria-label="GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          </a>
+
+          <!-- Download Button -->
+          <a href="index.html#download" class="VPButton medium brand">
+            Download Free
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+    <main class="article-container">
+        <div class="article-badge">
+            <i class="fas fa-shield-halved"></i> راهنمای تخصصی برنامه‌نویسان ایران &bull; به‌روزرسانی پاییز ۱۴۰۵ (نسخه v5.3)
+        </div>
+
+        <h1 style="font-size: 2.3rem; color: var(--vp-c-text-1); margin: 10px 0 20px; line-height: 1.35; font-weight: 900;">
+            آموزش جامع رفع تحریم و ارورهای گوگل آنتی‌گرویتی در ایران (حل قطعی خطای ۴۰۳، ۴۰۰، ۴۲۹ و قطعی استریم)
+        </h1>
+
+        <p style="font-size: 1.15rem; color: var(--vp-c-text-3); margin-bottom: 28px; line-height: 1.8;">
+            راهنمای عملی و بدون دردسر برای حل ارورهای تحریم منطقه، خطای مسدودیت اکانت، قطعی ناگهانی چت وسط کدنویسی و باز نشدن ادیتور؛ اتصال خودکار به پروکسی لوکال V2Ray و کلش بدون نیاز به تنظیمات دستی و بدون حالت سنگین TUN.
+        </p>
+
+        <!-- Star Callout Banner -->
+        <div class="star-banner">
+            <div>
+                <strong style="color: var(--vp-c-text-1); font-size: 1.15rem;"><i class="fas fa-star" style="color: #ffaa00;"></i> توسعه داده شده برای جامعه برنامه‌نویسان ایران</strong>
+                <p style="color: var(--vp-c-text-2); margin: 6px 0 0; font-size: 0.95rem;">
+                    پروژه متن‌باز <strong>Antigravity Cleaner</strong> صددرصد رایگان، آفلاین و بدون هیچ‌گونه تلمتری یا لاگین است. با ثبت یک ستاره در گیت‌هاب، از ادامه‌دار بودن این پروژه حمایت کنید!
+                </p>
+            </div>
+            <a href="https://github.com/tawroot/antigravity-cleaner" target="_blank" class="VPButton medium brand" style="white-space: nowrap; text-decoration: none;">
+                <i class="fab fa-github"></i> ثبت ستاره در گیت‌هاب
+            </a>
+        </div>
+
+        <article class="article-body">
+            <p>
+                محیط برنامه‌نویسی <strong>Google Antigravity</strong> (ادیتور اختصاصی هوش مصنوعی توسعه‌یافته توسط تیم Google DeepMind) در حال حاضر یکی از قدرتمندترین ابزارهای دستیار کدنویسی مستقل در دنیاست. با این حال، استفاده از این نرم‌افزار در ایران با چالش‌های کلافه‌کننده‌ای همراه است؛ از خطای مشهور ۴۰۳ و تحریم حساب کاربری گرفته تا قطع شدن ناگهانی کدنویسی در حین چت با هوش مصنوعی یا قفل شدن ادیتور.
+            </p>
+
+            <p>
+                خبر خوش این است که <strong>برای رفع این مشکلات نیازی به دستکاری‌های پیچیده شبکه، تغییر تنظیمات کارت شبکه ویندوز یا وارد کردن دستورات طولانی ترمینال در هر بار اجرای برنامه ندارید.</strong> در این راهنما، تمامی ارورهای رایج را به صورت دقیق بررسی می‌کنیم و نحوه حل خودکار همه آن‌ها با یک کلیک را توضیح می‌دهیم.
+            </p>
+
+            <h2><i class="fas fa-microscope" style="color: var(--vp-c-brand);"></i> ۱. چرا فعال کردن وی‌پی‌ان یا فیلترشکن معمولی مشکل را حل نمی‌کند؟</h2>
+            <p>
+                بسیاری از دوستان وقتی برای اولین بار با خطای زیر مواجه می‌شوند:
+            </p>
+
+            <div class="code-snippet" style="border-color: #ef4444; color: #f87171;">
+                <span class="code-badge">HTTP 403 Forbidden</span>
+                <code>HTTP 403: "Your current account is not eligible for Antigravity, because it is not currently available in your location."</code>
+            </div>
+
+            <p>
+                بلافاصله فیلترشکن سیستم را روشن می‌کنند یا در نرم‌افزارهایی مثل v2rayN یا NekoBox حالت <strong>TUN Mode</strong> را فعال می‌کنند. اما باز هم می‌بینند که یا برنامه اصلاً لاگین نمی‌شود، یا وسط تولید کد خطای <code>Agent terminated</code> رخ می‌دهد و نشست اکانت گوگل می‌پرد. دلیل فنی این اتفاق چیست؟
+            </p>
+
+            <ul>
+                <li><strong>چک‌های داخلی در کلاینت (Client-Side Verification):</strong> قبل از اینکه درخواست شما به سرورهای گوگل در کالیفرنیا برسد، فایل‌های جاوااسکریپت و باینری‌های ادیتور روی سیستم شما (مانند <code>main.js</code> و سرویس <code>language_server</code>) لوکیشن، تایم‌زون و وضعیت شبکه را چک می‌کنند. اگر حس کنند در ایران هستید، بلافاصله ارور ۴۰۳ صادر می‌کنند.</li>
+                <li><strong>نشت لحظه‌ای DNS (DNS Leak):</strong> در کانکشن‌های معمول فیلترشکن، سیستم‌عامل ممکن است استعلام نام دامنه‌های گوگل را از DNS کارت شبکه داخلی بپرسد. با ثبت حتی یک درخواست با آی‌پی ایران، حساب شما موقتاً فلگ می‌شود.</li>
+                <li><strong>قطع شدن استریم توسط سیستم‌های بازرسی بسته (Middlebox Reset):</strong> مدل هوش مصنوعی پاسخ‌ها را به صورت استریم زنده و پیوسته می‌فرستد. در اینترنت ایران، در صورتی که روی یک کانکشن چند ثانیه سکوت برقرار شود، فایروال اینترنت پکت RST تزریق کرده و چت با خطای <code>write EIO</code> قطع می‌شود.</li>
+            </ul>
+
+            <h2><i class="fas fa-wand-magic-sparkles" style="color: var(--vp-c-brand);"></i> ۲. نیازی به تنظیم دستی پروکسی ندارید؛ چرا دستکاری دستی اشتباه است؟</h2>
+            <p>
+                در اینترنت ممکن است آموزش‌هایی ببینید که به شما می‌گویند برای اجرای برنامه شورت‌کات بسازید و فلگ‌های طولانی کرومیوم مانند <code>--proxy-server</code> یا قوانین <code>--host-resolver-rules</code> را به صورت دستی وارد کنید، یا دستورات پیچیده‌ای در پاورشل تایپ کنید.
+            </p>
+
+            <div class="danger-box">
+                <strong><i class="fas fa-triangle-exclamation"></i> خطرات و سختی‌های روش دستی:</strong>
+                <ul style="margin: 8px 18px 0; padding: 0;">
+                    <li>کاربران عادی با دیدن فلگ‌های پیچیده ترمینال احساس ترس و سردرگمی می‌کنند و نگران به هم ریختن ویندوز خود می‌شوند.</li>
+                    <li>با تغییر پورت فیلترشکن یا جابجایی بین v2rayN و کلش، تمام آن دستورات دستی از کار می‌افتند و باید دوباره پورت‌ها را اصلاح کنید.</li>
+                    <li>روشن کردن حالت سنگین TUN کل پکیج‌منیجرهای شما (مانند <code>npm</code>, <code>pip</code>, <code>docker</code>) را با کندی و اختلال مواجه می‌کند.</li>
+                </ul>
+            </div>
+
+            <div class="success-box">
+                <strong><i class="fas fa-check-circle"></i> راه‌حل هوشمند و ۱۰۰٪ خودکار Antigravity Cleaner:</strong><br>
+                شما هیچ نیازی به تایپ دستورات طولانی، دانستن شماره پورت‌ها، یا دستکاری تنظیمات ویندوز و لینوکس ندارید! ابزار متن‌باز <strong>Antigravity Cleaner</strong> خودش به صورت خودکار پورت فعال فیلترشکن شما را شناسایی می‌کند، فایل‌های ادیتور را پچ می‌کند، پکت‌های ضربان قلب برای حفظ استریم چت تزریق می‌کند و برنامه را با یک دابل‌کلیک اجرا می‌نماید.
+            </div>
+
+            <h2><i class="fas fa-hospital" style="color: var(--vp-c-brand);"></i> ۳. کلینیک جامع خطاها (رفع ۸ ارور آزاردهنده ادیتور)</h2>
+            <p>
+                در ادامه، تمامی خطاهایی که برنامه‌نویسان در ایران با آن روبرو می‌شوند به همراه علت و راه‌حل قطعی آن‌ها آورده شده است:
+            </p>
+
+            <!-- Error 1 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-ban" style="color: #ef4444;"></i> ۱. ارور ۴۰۳ و تحریم حساب کاربری (Account Not Eligible)</span>
+                    <span class="error-tag tag-red">بحرانی / شایع‌ترین</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+                    <code>HTTP 403 Forbidden: "Your current account is not eligible for Antigravity, because it is not currently available in your location."</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> فعال بودن گیت‌کیپرهای سمت کلاینت در هسته ادیتور و ثبت آی‌پی یا DNS در زمان ورود به حساب کاربری گوگل.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: اجرای یک‌باره دستور <span class="pill-cmd">antigravity-cleaner patch all</span> در ترمینال یا انتخاب گزینه Patch All در نرم‌افزار.
+                </div>
+            </div>
+
+            <!-- Error 2 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-globe" style="color: #f59e0b;"></i> ۲. ارور ۴۰۰ عدم پشتیبانی لوکیشن (User location is not supported)</span>
+                    <span class="error-tag tag-amber">شبکه و ریجن</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">
+                    <code>HTTP 400 Bad Request: "User location is not supported."</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> ارسال درخواست‌های اتصال اولیه هوش مصنوعی بدون پروکسی اختصاصی و شناسایی موقعیت مکانی ایران توسط لبه گوگل کلود.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: اجرای برنامه با لانچر هوشمند <span class="pill-cmd">antigravity-cleaner launch</span> که تمام ترافیک ادیتور را به پروکسی لوکال هدایت می‌کند.
+                </div>
+            </div>
+
+            <!-- Error 3 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-bolt" style="color: #ef4444;"></i> ۳. قطع شدن چت وسط کدنویسی (Agent terminated due to error و write EIO)</span>
+                    <span class="error-tag tag-red">آزاردهنده</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+                    <code>Agent terminated due to error. You can prompt the model to try again or start a new conversation. (write EIO)</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> سرریز بافر لاگ‌های بیهوده ادیتور روی کنسول لینوکس یا ویندوز، همراه با قطعی ارتباط استریم زنده توسط فایروال اینترنت ایران.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: پچ هسته با <span class="pill-cmd">antigravity-cleaner patch all</span>؛ شیلد ASAR لاگ‌های مخرب را مسدود کرده و ارسال خودکار پکت‌های KeepAlive مانع از بسته شدن استریم می‌شود.
+                </div>
+            </div>
+
+            <!-- Error 4 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-plug-circle-xmark" style="color: #3b82f6;"></i> ۴. خطای نامشخص شبکه (Network issue connecting to the server)</span>
+                    <span class="error-tag tag-blue">تایم‌اوت اینترنت</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(59, 130, 246, 0.4); color: #93c5fd;">
+                    <code>Error Unknown: There was a network issue connecting to the server, please try again. (Error ID: 95ea05dd-...)</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> افت پکت‌ها و نشت استعلام‌های DNS در حین استریم gRPC یا استفاده از حالت سنگین TUN.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: بستن حالت TUN و اجرای مستقیم ادیتور با <span class="pill-cmd">antigravity-cleaner launch</span>.
+                </div>
+            </div>
+
+            <!-- Error 5 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-gauge-high" style="color: #f59e0b;"></i> ۵. خطای اتمام سهمیه و لیمیت موقت (HTTP 429 Quota Exceeded)</span>
+                    <span class="error-tag tag-amber">محدودیت سهمیه</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">
+                    <code>HTTP 429: Resource has been exhausted (Too Many Requests). Please wait before retrying.</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> خرابی فایل‌های کش سهمیه روی دیسک، یا استفاده از آی‌پی اشتراکی شلوغ در فیلترشکن.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: اجرای دستور <span class="pill-cmd">antigravity-cleaner clean</span> برای پاکسازی تخصصی باکت‌های کش ۴۲۹ بدون پاک شدن تاریخچه چت‌ها یا لاگین اکانت.
+                </div>
+            </div>
+
+            <!-- Error 6 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-network-wired" style="color: #3b82f6;"></i> ۶. خطای عدم اتصال به پورت لوکال (dial tcp 127.0.0.1:10808 connection refused)</span>
+                    <span class="error-tag tag-blue">پروکسی لوکال</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(59, 130, 246, 0.4); color: #93c5fd;">
+                    <code>proxyconnect tcp: dial tcp 127.0.0.1:10808: connect: connection refused</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> نرم‌افزار فیلترشکن (مثل v2rayN یا کلش) باز نیست یا روی پورت دیگری (مثلاً ۷۸۹۰ یا ۲۰۸۰) گوش می‌دهد.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: دستور <span class="pill-cmd">antigravity-cleaner doctor</span> پورت‌های فعال سیستم شما را فوراً شناسایی کرده و پورت صحیح را اعلام می‌کند.
+                </div>
+            </div>
+
+            <!-- Error 7 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-key" style="color: #f59e0b;"></i> ۷. خطای راه‌اندازی اکانت (Failed to fetch / Setting up your account)</span>
+                    <span class="error-tag tag-amber">سشن ورود</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">
+                    <code>There was an unexpected issue setting up your account. Failed to fetch.</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> وجود توکن‌های منقضی‌شده و رکوردهای خراب در حافظه DIPS ادیتور.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: اجرای <span class="pill-cmd">antigravity-cleaner clean</span> و لاگین مجدد به اکانت گوگل.
+                </div>
+            </div>
+
+            <!-- Error 8 -->
+            <div class="error-card">
+                <div class="error-header">
+                    <span class="error-title"><i class="fas fa-lock" style="color: #64748b;"></i> ۸. باز نشدن ادیتور و خطای قفل بودن پروسه (SingletonLock)</span>
+                    <span class="error-tag" style="background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3);">قفل پروسه</span>
+                </div>
+                <div class="code-snippet" style="margin: 10px 0 14px; border-color: rgba(148, 163, 184, 0.4); color: #cbd5e1;">
+                    <code>SingletonLock: Could not acquire lock. The process is already running.</code>
+                </div>
+                <p style="margin-bottom: 8px;">
+                    <strong>علت:</strong> بسته شدن ناگهانی ادیتور در پس‌زمینه و جا ماندن فایل قفل روی سیستم.
+                </p>
+                <div class="solution-pill">
+                    <i class="fas fa-circle-check"></i> راه‌حل: لانچر هوشمند <span class="pill-cmd">antigravity-cleaner launch</span> این قفل‌های مرده را به طور اتوماتیک پیش از بالا آمدن برنامه حذف می‌کند.
+                </div>
+            </div>
+
+            <h2><i class="fas fa-download" style="color: var(--vp-c-brand);"></i> ۴. راه‌اندازی خودکار در کمتر از ۱۰ ثانیه (ویندوز، لینوکس و مک)</h2>
+            <p>
+                هیچ پیش‌نیاز سختی وجود ندارد! فقط دستور نصب سیستم‌عامل خود را کپی کرده و اجرا کنید:
+            </p>
+
+            <h3>در ویندوز (Windows PowerShell):</h3>
+            <p>نرم‌افزار PowerShell را در حالت Run as Administrator باز کنید و دستور زیر را پیست نمایید:</p>
+            <div class="code-snippet">
+                <span class="code-badge">PowerShell</span>
+                <code>irm https://raw.githubusercontent.com/tawroot/antigravity-cleaner/main/install.ps1 | iex</code>
+            </div>
+
+            <h3>در لینوکس و مک (Linux / macOS Terminal):</h3>
+            <p>ترمینال خود را باز کرده و دستور زیر را اجرا کنید:</p>
+            <div class="code-snippet">
+                <span class="code-badge">Bash</span>
+                <code>curl -sSL https://raw.githubusercontent.com/tawroot/antigravity-cleaner/main/install.sh | bash</code>
+            </div>
+
+            <div class="info-box">
+                <strong><i class="fas fa-rocket"></i> بعد از نصب چه کنیم؟ فقط یک گام ساده:</strong><br>
+                ۱. ابتدا فیلترشکن خود (v2rayN، کلش، نکوباکس، هیدیفای و...) را مثل همیشه متصل کنید.<br>
+                ۲. یک‌بار دستور <code>antigravity-cleaner patch all</code> را بزنید تا هسته ادیتور برای همیشه پچ شود.<br>
+                ۳. دستور <code>antigravity-cleaner launch</code> را بزنید تا برنامه با پروکسی اختصاصی باز شود.<br>
+                <em>(اختیاری) اگر می‌خواهید یک آیکون آماده روی دسکتاپ داشته باشید، دستور <code>antigravity-cleaner create-launcher</code> را بزنید تا با یک دابل‌کلیک ادیتور همیشه بدون دردسر باز شود.</em>
+            </div>
+
+            <h2><i class="fas fa-desktop" style="color: var(--vp-c-brand);"></i> ۵. رابط کاربری گرافیکی (GUI)</h2>
+            <p>
+                در صورتی که مایل به استفاده از خط فرمان نیستید، Antigravity Cleaner دارای رابط کاربری گرافیکی مستقل (GUI) نیز هست. برای اجرای آن کافیست دستور زیر را بزنید یا روی فایل برنامه کلیک کنید:
+            </p>
+
+            <div class="code-snippet">
+                <span class="code-badge">Terminal</span>
+                <code>antigravity-cleaner gui</code>
+            </div>
+
+            <p>
+                در این پنجره، تمام ابزارها از جمله عیب‌یابی سلامت سیستم، پچ هسته، پاکسازی سهمیه و اجرای ادیتور با یک کلیک در اختیار شما قرار دارد.
+            </p>
+
+            <h2><i class="fas fa-table-list" style="color: var(--vp-c-brand);"></i> ۶. جدول جعبه‌ابزار دستورات Antigravity Cleaner</h2>
+            <table class="tech-table">
+                <thead>
+                    <tr>
+                        <th>دستور</th>
+                        <th>کاربرد و عملکرد</th>
+                        <th>چه زمانی استفاده کنیم؟</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>antigravity-cleaner launch</code></td>
+                        <td>شناسایی خودکار پورت پروکسی، حذف قفل‌های مرده و اجرای ادیتور با اتصال ایزوله</td>
+                        <td>استفاده روزمره برای باز کردن مطمئن ادیتور</td>
+                    </tr>
+                    <tr>
+                        <td><code>antigravity-cleaner patch all</code></td>
+                        <td>پچ دائمی فایل‌های هسته ادیتور و فعال‌سازی شیلد ضد قطعی استریم (KeepAlive)</td>
+                        <td>پس از نصب اولیه ادیتور یا بعد از آپدیت‌های جدید</td>
+                    </tr>
+                    <tr>
+                        <td><code>antigravity-cleaner clean</code></td>
+                        <td>پاکسازی باکت‌های موقت سهمیه ۴۲۹ بدون دست زدن به لاگین و تاریخچه چت‌ها</td>
+                        <td>هنگام مواجهه با ارور ۴۲۹ یا پیام Quota Exceeded</td>
+                    </tr>
+                    <tr>
+                        <td><code>antigravity-cleaner doctor</code></td>
+                        <td>اسکن خودکار پورت‌های فعال، بررسی سلامت فایل‌های ادیتور و پینگ گوگل</td>
+                        <td>هر زمان که در اتصال یا پورت‌ها شک داشتید</td>
+                    </tr>
+                    <tr>
+                        <td><code>antigravity-cleaner create-launcher</code></td>
+                        <td>ساخت آیکون اجرای خودکار روی دسکتاپ با یک کلیک</td>
+                        <td>برای باز کردن برنامه بدون نیاز به باز کردن ترمینال</td>
+                    </tr>
+                    <tr>
+                        <td><code>antigravity-cleaner restore</code></td>
+                        <td>بازگردانی تمام فایل‌های ادیتور به نسخه دست‌نخورده از روی فایل‌های بکاپ <code>.agybak</code></td>
+                        <td>در صورت تمایل به بازگشت کامل به حالت اورجینال</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2><i class="fas fa-circle-question" style="color: var(--vp-c-brand);"></i> ۷. سوالات متداول برنامه‌نویسان (FAQ)</h2>
+            
+            <p><strong>آیا اجرای دستورات Antigravity Cleaner لاگین یا چت‌های قبلی من را پاک می‌کند؟</strong><br>
+            خیر، به هیچ وجه. برخلاف دستورات خطرناک و خام مثل پاک کردن کل پوشه <code>~/.config/Antigravity</code>، ابزار Antigravity Cleaner به صورت جراحی‌شده فقط ۱۶ فایل موقت کش را هدف قرار می‌دهد و تمامی توکن‌های ورود، اکانت گوگل و پروژه‌های شما ۱۰۰٪ دست‌نخورده باقی می‌مانند.</p>
+
+            <p><strong>من از کلش (Clash Verge / Mihomo) یا نکوباکس استفاده می‌کنم؛ آیا تنظیمی لازم است؟</strong><br>
+            خیر. ابزار به صورت خودکار پورت‌های استاندارد (۱۰۸۰۸ مربوط به v2rayN، پورت ۷۸۹۰ مربوط به کلش، پورت ۲۰۸۰ مربوط به نکوباکس و ۱۰۸۰ مربوط به سایر پروتکل‌ها) را اسکن کرده و به پورت فعال متصل می‌شود.</p>
+
+            <p><strong>آیا این ابزار متن‌باز و امن است؟</strong><br>
+            بله، ریپازیتوری پروژه به صورت ۱۰۰٪ متن‌باز تحت لایسنس Apache 2.0 در گیت‌هاب در دسترس عموم است. این ابزار کاملاً آفلاین کار می‌کند و هیچ‌گونه ارسال تلمتری، داده یا ارتباط با سرور خارجی ندارد.</p>
+
+            <div class="star-banner" style="margin-top: 50px;">
+                <div>
+                    <strong style="color: var(--vp-c-text-1); font-size: 1.15rem;"><i class="fas fa-heart" style="color: #ef4444;"></i> از آزادی کدنویسی لذت ببرید!</strong>
+                    <p style="color: var(--vp-c-text-2); margin-top: 6px; font-size: 0.95rem;">
+                        اگر این آموزش و ابزار مشکل کار با Google Antigravity را برای شما برطرف کرد، با دادن یک ستاره (Star) به ریپازیتوری در گیت‌هاب، از زحمات تیم توسعه حمایت کنید.
+                    </p>
+                </div>
+                <a href="https://github.com/tawroot/antigravity-cleaner" target="_blank" class="VPButton medium brand" style="text-decoration: none;">
+                    <i class="fab fa-github"></i> ستاره در گیت‌هاب
+                </a>
+            </div>
+        </article>
+    </main>
+
+    <footer class="VPHomeFooter">
+    <div class="footer-simple-wrap">
+      <div class="footer-main-row">
+        <div class="footer-brand-info">
+          <div class="footer-brand">
+            <img src="assets/logo.png" alt="Antigravity Cleaner Logo" class="footer-logo" width="22" height="22">
+            <span class="footer-brand-name">Antigravity Cleaner</span>
+          </div>
+          <p class="brand-tagline">Autonomous open-source utility for Google Antigravity IDE.</p>
+        </div>
+        <div class="footer-actions-wrap">
+          <a href="index.html#docs" class="footer-doc-btn">
+            📖 <span>Documentation</span>
+          </a>
+        </div>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-bottom-row">
+        <div class="footer-meta">
+          <p class="copyright">Released under the Apache 2.0 License. Open-source &amp; 100% offline.</p>
+          <p class="manifesto-text">"Dedicated to every developer filtered from within and sanctioned from without. Code knows no borders." — <strong>@dalroot</strong></p>
+        </div>
+        <nav class="footer-nav-links" aria-label="Footer Navigation">
+          <a href="index.html" class="f-link">Home</a>
+          <a href="index.html#docs" class="f-link">Documentation</a>
+          <a href="troubleshooting.html" class="f-link">Error Clinic</a>
+          <a href="blog.html" class="f-link">Blog</a>
+          <a href="https://github.com/tawroot/antigravity-cleaner" target="_blank" rel="noopener noreferrer" class="f-link">GitHub</a>
+          <a href="https://t.me/dallrep" target="_blank" rel="noopener noreferrer" class="f-link telegram-link">📢 Telegram: @dallrep</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>

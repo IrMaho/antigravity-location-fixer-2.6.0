@@ -1,0 +1,44 @@
+# Binaries and build outputs
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# User Data & Backups
+Data/
+*.log
+!docs/test-reports/*.log
+*.tmp
+*.agybak
+*.old
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Research notes & private security findings (stored outside git in ~/.antigravity-private/)
+docs/PRIVATE_*
+docs/RESEARCH_*
+docs/upstream-bugs/
+docs/stats/
+*.private.*
+scripts/
+
+# Local backup & scratch dirs
+website-legacy-backup/
+landing-v2/
+design-system-spec/
+
+
+HANDOFF.md
+HANDOFF.fa.md
+FINANCIAL_REPORT.md
+*.secret.*

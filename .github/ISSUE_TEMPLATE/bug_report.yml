@@ -1,0 +1,60 @@
+name: "🐛 گزارش باگ / Bug Report"
+description: "ثبت سریع گزارش باگ یا خطای عملکردی در Antigravity Cleaner"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### ⚡ سپاس از گزارش شما / Thank you for helping improve Antigravity Cleaner!
+        - قبل از ارسال، پیشنهاد می‌شود دستور `antigravity auto-fix` را یک‌بار اجرا کنید.
+        - **توجه:** اگر با خطای **`HTTP 400 (User location is not supported)`** یا خطای پروکسی مواجه شدید، این مورد ناشی از نشت لوکیشن/فیلترشکن است و باگ کلینر نیست. لطفاً از قالب **«❓ پرسش و عیب‌یابی شبکه»** استفاده نمایید.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "شرح مشکل / Problem Description"
+      description: "توضیح کوتاه در مورد خطایی که رخ داده است / Describe what happened and what you expected."
+      placeholder: "مثال: هنگام زدن Auto-Fix در مک، پیام فلان خطا نمایش داده می‌شود..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: "سیستم‌عامل / Operating System"
+      options:
+        - "Linux"
+        - "Windows"
+        - "macOS"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "📋 گزارش تشخیصی خودکار / Diagnostic Report (ag-cleaner report)"
+      description: "دستور `ag-cleaner report` را در ترمینال یا پاورشل اجرا کرده و متن کپی‌شده را اینجا پیست (Ctrl+V) نمایید / Run 'ag-cleaner report' and paste the clipboard output here:"
+      placeholder: "Paste output of `ag-cleaner report` here..."
+      render: markdown
+    validations:
+      required: false
+
+  - type: textarea
+    id: agent_error
+    attributes:
+      label: "💬 متن یا اسکرین‌شات ارور ایجنت در ادیتور / Agent Error Message or Screenshot"
+      description: "پیام خطایی که ایجنت در چت ادیتور می‌دهد (مانند Error ID یا Terminated) را پیست کنید یا اسکرین‌شات آن را در این کادر بیندازید:"
+      placeholder: "مثال: Error: Agent execution terminated due to error. (Error ID: ...)"
+    validations:
+      required: false
+
+  - type: input
+    id: proxy_client
+    attributes:
+      label: "🛡️ کلاینت فیلترشکن و کشور سرور / Active Proxy Client & Server Location"
+      description: "نام برنامه پروکسی و کشوری که متصل هستید را بنویسید (اختیاری ولی بسیار کمک‌کننده):"
+      placeholder: "مثال: v2rayN با سرور آلمان / Hiddify / Clash / NekoBox"
+    validations:
+      required: false

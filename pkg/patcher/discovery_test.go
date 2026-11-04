@@ -1,0 +1,280 @@
+package patcher
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestGetStandardLanguageServerCandidates(t *testing.T) {
+	candidates := GetStandardLanguageServerCandidates()
+	if len(candidates) == 0 {
+		t.Fatalf("expected non-empty candidates list")
+	}
+
+	// Verify that modern lowercase Linux paths and user Applications are present
+	var foundOpt, foundHomeApp, foundRpmExtension, foundRpmClassic bool
+	for _, c := range candidates {
+		normalized := filepath.ToSlash(c)
+		if normalized == "/opt/antigravity/resources/bin/language_server" {
+			foundOpt = true
+		}
+		if filepath.Base(c) == "language_server" || filepath.Base(c) == "language_server.exe" {
+			foundHomeApp = true
+		}
+		if normalized == "/usr/share/antigravity/resources/app/extensions/antigravity/bin/language_server_linux_x64" {
+			foundRpmExtension = true
+		}
+		if normalized == "/usr/share/antigravity/resources/bin/language_server" {
+			foundRpmClassic = true
+		}
+	}
+
+	if !foundOpt {
+		t.Errorf("expected /opt/antigravity/... candidate in standard paths")
+	}
+	if !foundHomeApp {
+		t.Errorf("expected language_server in candidate list")
+	}
+	if !foundRpmExtension {
+		t.Errorf("expected RPM extension path /usr/share/antigravity/resources/app/extensions/antigravity/bin/language_server_linux_x64 in candidate list")
+	}
+	if !foundRpmClassic {
+		t.Errorf("expected classic RPM path /usr/share/antigravity/resources/bin/language_server in candidate list")
+	}
+}
+
+func TestIsSelfOrCleanerProcess(t *testing.T) {
+	// 1. Current PID must be recognized as self
+	if !isSelfOrCleanerProcess(os.Getpid(), "/usr/share/antigravity/bin/antigravity") {
+		t.Errorf("expected current PID %d to be recognized as self", os.Getpid())
+	}
+
+	// 2. Parent PID must be recognized as self/parent
+	if ppid := os.Getppid(); ppid > 0 {
+		if !isSelfOrCleanerProcess(ppid, "/usr/share/antigravity/bin/antigravity") {
+			t.Errorf("expected parent PID %d to be recognized as parent", ppid)
+		}
+	}
+
+	// 3. Cleaner and patcher binary keywords
+	testCases := []struct {
+		pid      int
+		exePath  string
+		expected bool
+	}{
+		{999999, "/usr/bin/antigravity-cleaner-linux-amd64", true},
+		{999999, "/usr/bin/antigravity-cleaner", true},
+		{999999, "/usr/local/bin/ag-cleaner", true},
+		{999999, "/opt/patcher/patcher", true},
+		{999999, "C:\\Tools\\antigravity-cleaner.exe", true},
+		{999999, "/usr/bin/antigravity-gui", true},
+		{999999, "/usr/share/antigravity/bin/antigravity", false},
+		{999999, "/usr/share/antigravity/antigravity", false},
+		{999999, "/usr/share/antigravity/resources/app/extensions/antigravity/bin/language_server_linux_x64", false},
+		{999999, "/opt/antigravity/resources/bin/language_server", false},
+	}
+
+	for _, tc := range testCases {
+		res := isSelfOrCleanerProcess(tc.pid, tc.exePath)
+		if res != tc.expected {
+			t.Errorf("isSelfOrCleanerProcess(%d, %q) = %v; want %v", tc.pid, tc.exePath, res, tc.expected)
+		}
+	}
+}
+
+func TestFindLanguageServerDynamicPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	binDir := filepath.Join(tmpDir, "bin")
+	shareDir := filepath.Join(tmpDir, "share", "antigravity")
+	appBinDir := filepath.Join(shareDir, "bin")
+	extBinDir := filepath.Join(shareDir, "resources", "app", "extensions", "antigravity", "bin")
+
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		t.Fatalf("failed to create binDir: %v", err)
+	}
+	if err := os.MkdirAll(appBinDir, 0755); err != nil {
+		t.Fatalf("failed to create appBinDir: %v", err)
+	}
+	if err := os.MkdirAll(extBinDir, 0755); err != nil {
+		t.Fatalf("failed to create extBinDir: %v", err)
+	}
+
+	// Create real application executable in shareDir/bin/antigravity
+	realApp := filepath.Join(appBinDir, "antigravity")
+	if err := os.WriteFile(realApp, []byte("#!/bin/sh\necho antigravity"), 0755); err != nil {
+		t.Fatalf("failed to create real app: %v", err)
+	}
+
+	// Create symlink in binDir/antigravity -> shareDir/bin/antigravity
+	symlinkApp := filepath.Join(binDir, "antigravity")
+	if err := os.Symlink(realApp, symlinkApp); err != nil {
+		// Fallback to copy if symlinks not supported on filesystem
+		if err := os.WriteFile(symlinkApp, []byte("#!/bin/sh\necho antigravity"), 0755); err != nil {
+			t.Fatalf("failed to create symlinkApp: %v", err)
+		}
+	}
+
+	// Create target language server binary
+	binNames := GetLanguageServerBinaryNames()
+	targetName := binNames[0]
+	targetLs := filepath.Join(extBinDir, targetName)
+	if err := os.WriteFile(targetLs, []byte("fake language server binary"), 0755); err != nil {
+		t.Fatalf("failed to create targetLs: %v", err)
+	}
+
+	// 1. Verify candidate roots and probe logic with symlink
+	roots := getCandidateRoots(symlinkApp)
+	found := probeRootsForLanguageServer(roots)
+	if found != targetLs && found != filepath.Join(extBinDir, "language_server.exe") {
+		t.Errorf("probeRootsForLanguageServer() = %q; want %q", found, targetLs)
+	}
+
+	// 2. Also verify FindIdeMainJs dynamic discovery via PATH
+	mainJsPath := filepath.Join(shareDir, "resources", "app", "out", "main.js")
+	if err := os.MkdirAll(filepath.Dir(mainJsPath), 0755); err != nil {
+		t.Fatalf("failed to create main.js dir: %v", err)
+	}
+	if err := os.WriteFile(mainJsPath, []byte("// ide main.js"), 0644); err != nil {
+		t.Fatalf("failed to create main.js: %v", err)
+	}
+
+	oldPath := os.Getenv("PATH")
+	os.Setenv("PATH", binDir+string(os.PathListSeparator)+oldPath)
+	defer os.Setenv("PATH", oldPath)
+
+	foundJs := FindIdeMainJs()
+	if foundJs != mainJsPath && !strings.Contains(foundJs, "main.js") {
+		t.Errorf("FindIdeMainJs() dynamic PATH = %q; want %q", foundJs, mainJsPath)
+	}
+}
+
+func TestFindLanguageServerModularEnvOverride(t *testing.T) {
+	// Create a dummy temporary file
+	tmpDir := t.TempDir()
+	dummyBin := filepath.Join(tmpDir, "dummy_language_server")
+	if err := os.WriteFile(dummyBin, []byte("dummy binary"), 0755); err != nil {
+		t.Fatalf("failed to create dummy binary: %v", err)
+	}
+
+	os.Setenv("ANTIGRAVITY_LANGUAGE_SERVER_PATH", dummyBin)
+	defer os.Unsetenv("ANTIGRAVITY_LANGUAGE_SERVER_PATH")
+
+	var logMessages []string
+	logger := func(format string, args ...interface{}) {
+		logMessages = append(logMessages, format)
+	}
+
+	found := FindLanguageServerModular(logger)
+	if found != dummyBin {
+		t.Errorf("expected %s, got %s", dummyBin, found)
+	}
+	if len(logMessages) == 0 {
+		t.Errorf("expected logs to be recorded")
+	}
+}
+
+func TestFindRunningLanguageServerOnCurrentHost(t *testing.T) {
+	var logged []string
+	logger := func(format string, args ...interface{}) {
+		logged = append(logged, format)
+	}
+
+	found := FindRunningLanguageServer(logger)
+	t.Logf("Discovery result for running language_server: %s (logged %d messages)", found, len(logged))
+}
+
+func TestDetectLanguageServerInDir(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// 1. Empty dir returns empty
+	if found := DetectLanguageServerInDir(tmpDir); found != "" {
+		t.Errorf("expected empty string in empty dir, got %q", found)
+	}
+
+	// 2. Create backup files only -> should be ignored
+	_ = os.WriteFile(filepath.Join(tmpDir, "language_server.agybak"), []byte("bak"), 0755)
+	_ = os.WriteFile(filepath.Join(tmpDir, "language_server.bin"), []byte("bin"), 0755)
+	_ = os.WriteFile(filepath.Join(tmpDir, "language_server.bak"), []byte("bak"), 0755)
+	if found := DetectLanguageServerInDir(tmpDir); found != "" {
+		t.Errorf("expected backup files to be ignored, got %q", found)
+	}
+
+	// 3. Create language_server_macos_arm (the exact filename from issue #30)
+	macArmPath := filepath.Join(tmpDir, "language_server_macos_arm")
+	if err := os.WriteFile(macArmPath, []byte("macho arm binary"), 0755); err != nil {
+		t.Fatalf("failed to create macArmPath: %v", err)
+	}
+
+	found := DetectLanguageServerInDir(tmpDir)
+	if found != macArmPath {
+		t.Errorf("DetectLanguageServerInDir() = %q; want %q", found, macArmPath)
+	}
+}
+
+func TestAppManagementHelpers(t *testing.T) {
+	// Nil error
+	if IsAppManagementError(nil) {
+		t.Errorf("nil error should not be AppManagementError")
+	}
+
+	// Test writeability check on valid dir
+	tmpDir := t.TempDir()
+	status, err := CheckAppBundleWriteability(tmpDir)
+	if err != nil {
+		t.Errorf("unexpected error on writeable tempdir: %v", err)
+	}
+	if status == "" {
+		t.Errorf("expected non-empty status string")
+	}
+}
+
+func TestFindCandidateBinaries(t *testing.T) {
+	candidates := FindCandidateBinaries()
+	if len(candidates) == 0 {
+		t.Fatalf("FindCandidateBinaries() returned empty list")
+	}
+
+	var foundAgy bool
+	for _, c := range candidates {
+		base := filepath.Base(c)
+		if base == "agy.exe" || base == "agy" {
+			foundAgy = true
+			break
+		}
+	}
+
+	if !foundAgy {
+		t.Errorf("FindCandidateBinaries() should include agy or agy.exe candidate paths")
+	}
+}
+
+func TestGetStandardLanguageServerCandidatesIncludesAgy(t *testing.T) {
+	candidates := GetStandardLanguageServerCandidates()
+	var foundGeminiAgy bool
+	for _, c := range candidates {
+		normalized := filepath.ToSlash(c)
+		if strings.Contains(normalized, ".gemini/bin/agy") {
+			foundGeminiAgy = true
+			break
+		}
+	}
+	if !foundGeminiAgy {
+		t.Errorf("expected candidates to include .gemini/bin/agy path")
+	}
+}
+
+func TestDetectLanguageServerInDirWithAgy(t *testing.T) {
+	tmpDir := t.TempDir()
+	agyPath := filepath.Join(tmpDir, "agy.exe")
+	if err := os.WriteFile(agyPath, []byte("fake agy binary"), 0755); err != nil {
+		t.Fatalf("failed to create fake agy: %v", err)
+	}
+
+	found := DetectLanguageServerInDir(tmpDir)
+	if found != agyPath {
+		t.Errorf("DetectLanguageServerInDir() = %q; want %q", found, agyPath)
+	}
+}
+

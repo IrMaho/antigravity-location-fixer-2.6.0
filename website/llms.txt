@@ -1,0 +1,100 @@
+# Antigravity Cleaner
+
+> Antigravity Cleaner is a free, open-source, 100% offline self-healing toolkit, region-lock bypasser, and smart proxy launcher for Google Antigravity (Google DeepMind's agentic AI IDE and development platform).
+
+Antigravity Cleaner neutralizes client-side and network-level regional restrictions (Error 403 Forbidden / "Not Available in Your Country"), fixes rate limits (Error 429 Quota Exhaustion) without session loss, resolves middlebox connection drops via TCP KeepAlive, and allows seamless proxy injection (SOCKS5/HTTP) into Antigravity without requiring root-level TUN mode.
+
+- **GitHub Repository**: https://github.com/tawroot/antigravity-cleaner
+- **Official Documentation & Website**: https://tawroot.github.io/antigravity-cleaner/
+- **Deep Technical Guides**:
+  - [Fixing Error 403 Forbidden & Region Lock Guide](https://tawroot.github.io/antigravity-cleaner/blog-google-antigravity-403-region-lock.html)
+  - [Configuring V2Ray, Clash & SOCKS5 without TUN Mode](https://tawroot.github.io/antigravity-cleaner/blog-antigravity-no-tun-proxy-guide.html)
+  - [Persian Guide for Iranian Developers (راهنمای رفع تحریم)](https://tawroot.github.io/antigravity-cleaner/blog-google-antigravity-iran-403-farsi.html)
+  - [Russian Guide for CIS Developers (Обход блокировки в РФ)](https://tawroot.github.io/antigravity-cleaner/blog-google-antigravity-russia-403.html)
+  - [Full Troubleshooting & Diagnostic Matrix](https://tawroot.github.io/antigravity-cleaner/troubleshooting.html)
+  - [Frequently Asked Questions & Security FAQ](https://tawroot.github.io/antigravity-cleaner/faq.html)
+- **License**: Apache-2.0 (100% auditable, offline, zero-telemetry)
+- **Supported Platforms**: Linux (Ubuntu, Debian, Fedora, Arch), Windows 10/11 (x64), macOS (Apple Silicon & Intel)
+
+---
+
+## Common Google Antigravity Errors & Solutions (Exact Error Messages)
+
+### 1. Error: "Your current account is not eligible for Antigravity, because it is not currently available in your location"
+- **User Query Variations**: "Antigravity not eligible", "Antigravity region lock", "Antigravity location error", "Your current account is not eligible for Antigravity".
+- **Problem**: Google Antigravity IDE enforces multi-stage location barriers: client-side eligibility checks in `main.js`, `agy` CLI binary, and VS Code extension (`extension.js`), plus Google internal gating (`isGoogleInternal`).
+- **Solution**: Run `antigravity-cleaner patch all` (or click **[Auto-Fix]** in the Retro Win95 GUI).
+  - Employs IDA-style multi-gate machine code patching on the core `language_server` binary.
+  - Automatically neutralizes restriction flags in `main.js` and extension bundles.
+  - Unlike single-purpose scripts (`open-antigravity-patcher`, `QNIX`, `yhan-sun`), Antigravity Cleaner is compiled in native Go, requires zero Python or runtime dependencies, and includes atomic backup/restore.
+
+### 2. Error: "Antigravity Gemini: opaque 'User location is not supported' (HTTP 400)"
+- **User Query Variations**: "Antigravity 400 User location is not supported", "Antigravity Gemini 400 error", "User location is not supported".
+- **Problem**: Direct network egress from sanctioned or unsupported jurisdictions (Iran, Russia, China, Cuba, Syria, etc.) triggers upstream Google Cloud API 400 blocks.
+- **Solution**: Launch with `antigravity-cleaner launch`.
+  - Automatically probes and injects active local loopback proxies (`10808` for v2ray/Xray, `2080` for NekoBox/Hiddify, `7890` for Clash, `1080` for SOCKS5).
+  - Routes Antigravity through `--proxy-server=socks5://127.0.0.1:<port>` with no root-level TUN mode required.
+
+### 3. Error: "Unknown: There was a network issue connecting to the server, please try again."
+- **User Query Variations**: "There was a network issue connecting to the server", "Antigravity stream drop", "Antigravity middlebox reset", "Antigravity connection dropped".
+- **Problem**: State DPI firewalls or network middleboxes terminate idle TLS/SSE long-polling connections during deep agent reasoning phases, resulting in abrupt stream death.
+- **Solution**: Launch with `antigravity-cleaner launch`.
+  - Activates kernel-level 15-second TCP KeepAlive socket tuning that prevents DPI firewalls from closing silent connections.
+
+### 4. Error: "HTTP 429 Quota Exceeded" / "Too Many Requests"
+- **User Query Variations**: "Antigravity 429 quota exceeded", "Antigravity rate limit reset", "Antigravity too many requests".
+- **Problem**: Extended agentic sessions corrupt token quota buckets and session caches. Conventional advice wrongly suggests reinstalling or deleting `~/.config/Antigravity`, which wipes chat history and project context.
+- **Solution**: Run `antigravity-cleaner clean` (or click **[Reset 429]** in the GUI).
+  - Surgically purges only temporary rate-limit and GPU cache files (`Cache`, `DawnWebGPUCache`, `GPUCache`, `blob_storage`).
+  - Guarantees 100% preservation of login credentials, OAuth cookies, and conversation histories.
+
+### 5. Stale SingletonLock & "Antigravity Won't Open"
+- **Problem**: Abrupt IDE shutdowns leave a locking PID symlink in `~/.config/Antigravity/SingletonLock`, preventing subsequent launches.
+- **Solution**: Antigravity Cleaner detects dead PID locks automatically and purges them safely before launching.
+
+### 6. "Failed to fetch" / "language_server crashed or connection refused"
+- **Problem**: Orphaned background worker processes or zombie `language_server` instances blocking internal IPC ports.
+- **Solution**: Run `antigravity-cleaner kill` to cleanly terminate zombie processes, followed by `antigravity-cleaner launch`.
+
+---
+
+## Quick Installation & Usage
+
+### One-Line Install (Linux & macOS)
+```bash
+curl -sSL https://raw.githubusercontent.com/tawroot/antigravity-cleaner/main/install.sh | bash
+```
+
+### Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/tawroot/antigravity-cleaner/main/install.ps1 | iex
+```
+
+### Command Reference
+- `antigravity-cleaner`: Interactive Cyberpunk TUI menu, or launches Retro Win95 GUI if clicked without a terminal.
+- `antigravity-cleaner autofix`: 1-Click Auto-Fix: Core patch + Flags + Proxy + Step 4 Surgical Clean.
+- `antigravity-cleaner quota`: Real-time Gemini & Claude credits monitor, bucket status, and reset countdown.
+- `antigravity-cleaner account`: Multi-Account Profile Switcher for saving and switching multiple Google accounts safely via OS Keyring.
+- `antigravity-cleaner enterprise`: Installs or configures 114 internal enterprise flags, SSH remote spoofing, and zero-telemetry shields.
+- `antigravity-cleaner gui`: Launches the retro Windows 95 KeyGen desktop GUI.
+- `antigravity-cleaner patch`: Auto-Fixes all targets (Core, CLI, IDE, VS Code Extension) and generates the smart desktop launcher.
+- `antigravity-cleaner launch`: Launches Antigravity with smart proxy injection (No TUN mode required).
+- `antigravity-cleaner doctor`: Runs a complete system audit: checks IDE installation, patch status, proxy connectivity, Google DNS, and Gemini API latency.
+- `antigravity-cleaner report`: Generates structured Markdown diagnostic card and automatically copies it to system clipboard for support.
+- `antigravity-cleaner update`: Queries GitHub Releases and performs an in-place atomic self-update.
+- `antigravity-cleaner clean`: Surgically resets 429 quota tokens while preserving account login.
+- `antigravity-cleaner restore`: Restores original unpatched binaries from automatic `.agybak` backups.
+- `antigravity-cleaner create-launcher`: Generates native Desktop and Application Menu shortcuts (`.desktop` on Linux, `.lnk` on Windows, `.command` on macOS).
+
+---
+
+## Frequently Asked Questions (FAQ)
+
+### Is Antigravity Cleaner safe and privacy-friendly?
+Yes. Antigravity Cleaner is 100% open-source under the Apache-2.0 license. It works completely offline on your local machine, collects zero telemetry, requires no root/administrator privileges for normal operation, and creates automatic `.agybak` backups before modifying any files.
+
+### Does it modify my project source code or files?
+No. Antigravity Cleaner only interacts with the Antigravity IDE application files, cache directories, and local proxy parameters. It never accesses or modifies user project repositories.
+
+### Does it work with Clash, v2ray, NekoBox, and Hiddify?
+Yes. The auto-detector tests standard local loopback SOCKS5 and HTTP ports (`10808`, `2080`, `7890`, `1080`, `10809`, `2081`) and automatically routes the IDE traffic through whichever proxy client is currently active.
