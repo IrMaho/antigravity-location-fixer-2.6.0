@@ -94,6 +94,22 @@ func FindAllIdeMainJs() []string {
 		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Antigravity IDE", "resources", "app", "dist", "main.js"),
 		filepath.Join(os.Getenv("PROGRAMFILES"), "Antigravity", "resources", "app", "out", "main.js"),
 		filepath.Join(os.Getenv("ProgramFiles(x86)"), "Antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(home, "Desktop", "Antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(home, "Desktop", "Antigravity", "resources", "app", "main.js"),
+		filepath.Join(home, "Desktop", "Antigravity IDE", "resources", "app", "out", "main.js"),
+		filepath.Join(home, "Desktop", "Antigravity IDE", "resources", "app", "main.js"),
+		filepath.Join(home, "Desktop", "antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(home, "Desktop", "resources", "app", "out", "main.js"),
+		filepath.Join(home, "Downloads", "Antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(home, "Downloads", "Antigravity IDE", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "Antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "Antigravity", "resources", "app", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "Antigravity IDE", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "Antigravity IDE", "resources", "app", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Downloads", "Antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Downloads", "Antigravity IDE", "resources", "app", "out", "main.js"),
 		"/Applications/Antigravity.app/Contents/Resources/app/out/main.js",
 		"/Applications/Antigravity.app/Contents/Resources/app/main.js",
 		"/Applications/Antigravity IDE.app/Contents/Resources/app/out/main.js",
@@ -102,6 +118,26 @@ func FindAllIdeMainJs() []string {
 
 	for _, c := range candidates {
 		add(c)
+	}
+
+	// Dynamic folder search across Desktop and Downloads for custom folder names
+	userProfile := os.Getenv("USERPROFILE")
+	if userProfile == "" {
+		userProfile = home
+	}
+	for _, parent := range []string{filepath.Join(userProfile, "Desktop"), filepath.Join(userProfile, "Downloads"), filepath.Join(home, "Desktop"), filepath.Join(home, "Downloads")} {
+		if parent == "" {
+			continue
+		}
+		if entries, err := os.ReadDir(parent); err == nil {
+			for _, e := range entries {
+				if e.IsDir() && strings.Contains(strings.ToLower(e.Name()), "antigravity") {
+					for _, sub := range jsSubpaths {
+						add(filepath.Join(parent, e.Name(), sub))
+					}
+				}
+			}
+		}
 	}
 
 	return results

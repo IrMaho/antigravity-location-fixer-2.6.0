@@ -59,6 +59,40 @@ func FindAllAntigravityExecutables() []AppTarget {
 		// Antigravity IDE (VS Code based)
 		add("Antigravity IDE", filepath.Join(localAppData, "Programs", "Antigravity IDE", "Antigravity IDE.exe"), true)
 		add("Antigravity IDE", filepath.Join(progFiles, "Antigravity IDE", "Antigravity IDE.exe"), true)
+
+		// Desktop and Downloads discovery for custom/portable extractions
+		userProfile := os.Getenv("USERPROFILE")
+		if userProfile == "" {
+			userProfile = home
+		}
+		desktop := filepath.Join(userProfile, "Desktop")
+		downloads := filepath.Join(userProfile, "Downloads")
+
+		add("Antigravity", filepath.Join(desktop, "Antigravity", "Antigravity.exe"), false)
+		add("Antigravity", filepath.Join(desktop, "Antigravity", "Antigravity IDE.exe"), true)
+		add("Antigravity IDE", filepath.Join(desktop, "Antigravity IDE", "Antigravity IDE.exe"), true)
+		add("Antigravity", filepath.Join(desktop, "antigravity", "antigravity.exe"), false)
+		add("Antigravity", filepath.Join(desktop, "Antigravity.exe"), false)
+		add("Antigravity IDE", filepath.Join(desktop, "Antigravity IDE.exe"), true)
+
+		add("Antigravity", filepath.Join(downloads, "Antigravity", "Antigravity.exe"), false)
+		add("Antigravity IDE", filepath.Join(downloads, "Antigravity IDE", "Antigravity IDE.exe"), true)
+		add("Antigravity", filepath.Join(downloads, "antigravity", "antigravity.exe"), false)
+
+		for _, parent := range []string{desktop, downloads} {
+			if parent != "" {
+				if entries, err := os.ReadDir(parent); err == nil {
+					for _, e := range entries {
+						if e.IsDir() && strings.Contains(strings.ToLower(e.Name()), "antigravity") {
+							dir := filepath.Join(parent, e.Name())
+							add("Antigravity IDE", filepath.Join(dir, "Antigravity IDE.exe"), true)
+							add("Antigravity", filepath.Join(dir, "Antigravity.exe"), false)
+							add("Antigravity", filepath.Join(dir, "antigravity.exe"), false)
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// 2. Linux checks
@@ -188,7 +222,30 @@ func CleanChromiumProxyURL(proxyURL string) string {
 
 // LaunchAntigravityWithProxy launches Antigravity with injected proxy variables (No TUN needed)
 func LaunchAntigravityWithProxy(appPath string, proxyURL string, extraArgs []string) error {
-	if appPath == "" {
+	if appPath != "" {
+		if fi, err := os.Stat(appPath); err == nil {
+			if fi.IsDir() {
+				for _, sub := range []string{"Antigravity IDE.exe", "Antigravity.exe", "antigravity.exe", "antigravity"} {
+					p := filepath.Join(appPath, sub)
+					if fileExists(p) {
+						appPath = p
+						break
+					}
+				}
+			} else if strings.HasSuffix(strings.ToLower(appPath), ".js") {
+				root := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(appPath))))
+				for _, sub := range []string{"Antigravity IDE.exe", "Antigravity.exe", "antigravity.exe"} {
+					p := filepath.Join(root, sub)
+					if fileExists(p) {
+						appPath = p
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if appPath == "" || !fileExists(appPath) {
 		appPath = FindAntigravityExecutable()
 		if appPath == "" {
 			return fmt.Errorf("Antigravity executable not found")
@@ -229,9 +286,54 @@ func LaunchAntigravityWithProxy(appPath string, proxyURL string, extraArgs []str
 	return nil
 }
 
+// fileExists returns true if path exists and is not a directory
+func fileExists(p string) bool {
+	if p == "" {
+		return false
+	}
+	fi, err := os.Stat(p)
+	return err == nil && !fi.IsDir()
+}
+
 // GenerateNoTunDesktopLauncher creates .desktop shortcuts for both Antigravity and Antigravity Cleaner GUI
 func GenerateNoTunDesktopLauncher(proxyURL string) (string, error) {
-	appPath := FindAntigravityExecutable()
+	return GenerateNoTunDesktopLauncherCustom("", proxyURL)
+}
+
+// GenerateNoTunDesktopLauncherCustom creates .desktop / .lnk shortcuts allowing a custom application path
+func GenerateNoTunDesktopLauncherCustom(customPath, proxyURL string) (string, error) {
+	appPath := customPath
+	if appPath != "" {
+		if fi, err := os.Stat(appPath); err == nil {
+			if fi.IsDir() {
+				for _, sub := range []string{
+					"Antigravity IDE.exe",
+					"Antigravity.exe",
+					"antigravity.exe",
+					"antigravity",
+				} {
+					p := filepath.Join(appPath, sub)
+					if fileExists(p) {
+						appPath = p
+						break
+					}
+				}
+			} else if strings.HasSuffix(strings.ToLower(appPath), ".js") {
+				root := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(appPath))))
+				for _, sub := range []string{"Antigravity IDE.exe", "Antigravity.exe", "antigravity.exe"} {
+					p := filepath.Join(root, sub)
+					if fileExists(p) {
+						appPath = p
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if appPath == "" || !fileExists(appPath) {
+		appPath = FindAntigravityExecutable()
+	}
 	if appPath == "" {
 		return "", fmt.Errorf("Antigravity executable not found")
 	}

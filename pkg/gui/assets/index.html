@@ -298,10 +298,17 @@
         <input type="text" class="field-input" id="targetApp" value="Detecting Antigravity..." readonly style="background:#f0f0f0; color:#000080;">
       </div>
 
-      <!-- Installation Path Box (Auto-Detected) -->
+      <!-- Installation Path Box (Auto-Detected + Manual Selection) -->
       <div class="field-group">
-        <label class="field-label">Target File Path:</label>
-        <input type="text" class="field-input" id="pathInput" value="Searching system..." readonly style="background:#f0f0f0; color:#333;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <label class="field-label">Target Installation Path (IDE / Executable):</label>
+          <span style="font-size:9.5px; color:#555;">(انتخاب خودکار یا دستی)</span>
+        </div>
+        <div style="display:flex; gap:3px;">
+          <input type="text" class="field-input" id="pathInput" placeholder="مسیر پوشه یا فایل ادیتور (یا انتخاب با دکمه روبرو)..." style="flex:1; background:#ffffff; color:#000080;" oninput="onCustomPathChanged()">
+          <button class="win95-btn" onclick="actionBrowseFile()" style="width:75px; height:22px; font-size:10px; padding:0 3px;" title="انتخاب فایل اجرایی Antigravity IDE.exe یا main.js">📁 Browse...</button>
+          <button class="win95-btn" onclick="actionBrowseFolder()" style="width:65px; height:22px; font-size:10px; padding:0 3px;" title="انتخاب پوشه نصب روی دسکتاپ">📂 Folder</button>
+        </div>
       </div>
 
       <!-- Step-by-Step Guidance / Status Output Box -->
@@ -448,13 +455,68 @@
       }
     }
 
-    // Auto-Detect on Load
-    async function loadDetection() {
+    function getCurrentPath() {
+      const p = pathInput.value ? pathInput.value.trim() : '';
+      if (p === 'Searching system...' || p.startsWith('Not detected')) {
+        return '';
+      }
+      return p;
+    }
+
+    let detectDebounceTimer = null;
+    function onCustomPathChanged() {
+      clearTimeout(detectDebounceTimer);
+      detectDebounceTimer = setTimeout(() => {
+        loadDetection(getCurrentPath());
+      }, 600);
+    }
+
+    async function actionBrowseFile() {
+      soundBeep(520, 0.08);
+      setStatus('📁 در حال باز کردن پنجره انتخاب فایل...', '#00f0ff');
       try {
-        const res = await fetch('/api/detect');
+        const res = await fetch('/api/browse?type=file');
+        const data = await res.json();
+        if (data.success && data.path) {
+          pathInput.value = data.path;
+          soundBeep(880, 0.1);
+          loadDetection(data.path);
+        } else {
+          setStatus('READY: بدون تغییر مسیر', '#00ff00');
+        }
+      } catch (err) {
+        setStatus('ERROR: ' + (err.message || 'خطا در باز کردن دیالوگ انتخاب فایل'), '#ff0055');
+      }
+    }
+
+    async function actionBrowseFolder() {
+      soundBeep(520, 0.08);
+      setStatus('📂 در حال باز کردن پنجره انتخاب پوشه...', '#00f0ff');
+      try {
+        const res = await fetch('/api/browse?type=folder');
+        const data = await res.json();
+        if (data.success && data.path) {
+          pathInput.value = data.path;
+          soundBeep(880, 0.1);
+          loadDetection(data.path);
+        } else {
+          setStatus('READY: بدون تغییر پوشه', '#00ff00');
+        }
+      } catch (err) {
+        setStatus('ERROR: ' + (err.message || 'خطا در باز کردن دیالوگ انتخاب پوشه'), '#ff0055');
+      }
+    }
+
+    // Auto-Detect on Load or Custom Path
+    async function loadDetection(customPath = '') {
+      try {
+        const targetUrl = customPath ? '/api/detect?path=' + encodeURIComponent(customPath) : '/api/detect';
+        const res = await fetch(targetUrl);
         const data = await res.json();
         targetApp.value = data.app || 'Google Antigravity 2.x';
-        pathInput.value = data.path || 'Not detected (custom location)';
+        if (data.path) {
+          pathInput.value = data.path;
+        }
 
         const archBadge = document.getElementById('archBadge');
         if (archBadge && data.arch && data.os) {
@@ -481,20 +543,18 @@
           detectedBadge.innerText = '✔ [ AUTO-DETECTED ]';
           detectedBadge.style.color = '#008000';
           setStep(1);
-          setStatus('READY: Click [ ① ⚡ Auto-Fix ] to unlock targets & proxy', '#00ff00');
+          setStatus('READY: کلیک روی [ ① ⚡ Auto-Fix ] برای پچ فوری و تنظیم پروکسی', '#00ff00');
         } else {
-          detectedBadge.innerText = '⚠️ [ NOT FOUND ]';
+          detectedBadge.innerText = '⚠️ [ مسیر دستی ]';
           detectedBadge.style.color = '#c00000';
-          setStatus('NOTICE: Antigravity path not found automatically', '#ffff00');
+          setStatus('NOTICE: مسیر ادیتور به صورت خودکار شناسایی نشد؛ با 📁 Browse یا 📂 Folder انتخاب کنید', '#ffff00');
         }
       } catch (err) {
-        targetApp.value = 'Google Antigravity 2.x (IDE & Language Server)';
-        pathInput.value = '~/Applications/Antigravity/resources/bin/language_server';
         setStep(1);
-        setStatus('READY: Click [ ① ⚡ Auto-Fix ] to unlock targets & proxy', '#00ff00');
+        setStatus('READY: مسیر را تعیین کرده و روی [ ① ⚡ Auto-Fix ] کلیک کنید', '#00ff00');
       }
     }
-    window.addEventListener('DOMContentLoaded', loadDetection);
+    window.addEventListener('DOMContentLoaded', () => loadDetection());
 
     // Toggle Privacy & Zero-Telemetry Wrapper Checkbox
     async function actionTogglePrivacy() {
@@ -507,7 +567,7 @@
         if (data.success) {
           soundBeep(1174, 0.15);
           setStatus('✔ ' + (data.message || 'Privacy state updated'), '#00ff00');
-          loadDetection();
+          loadDetection(getCurrentPath());
         } else {
           soundBeep(250, 0.2);
           setStatus('ERROR: ' + (data.message || 'Privacy toggle failed'), '#ff0055');
@@ -523,19 +583,21 @@
     // Patch Action (Step 1)
     async function actionPatch() {
       soundBeep(880, 0.12);
-      setStatus('STEP 1/3: Patching 4 Targets (Core, CLI, IDE, VS Code)...', '#ffff00');
+      setStatus('STEP 1/3: در حال پچ اهداف و ریست سهمیه کووتا...', '#ffff00');
+      const p = getCurrentPath();
+      const url = p ? '/api/patch?path=' + encodeURIComponent(p) : '/api/patch';
       try {
-        const res = await fetch('/api/patch', { method: 'POST' });
+        const res = await fetch(url, { method: 'POST' });
         const data = await res.json();
         soundBeep(1174, 0.18);
         if (data.success) {
           setStep(2);
-          setStatus('✔ STEP 1 DONE! Next: Click [ ② 🚀 Launch IDE ]', '#00ff00');
+          setStatus('✔ ' + (data.message || 'STEP 1 DONE! Next: Click [ ② 🚀 Launch IDE ]'), '#00ff00');
         } else {
           setStatus('ERROR: ' + (data.message || 'Patch failed'), '#ff0055');
         }
       } catch (err) {
-        setStatus('ERROR: Communication failure', '#ff0055');
+        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#ff0055');
       }
     }
 
@@ -543,8 +605,10 @@
     async function actionLaunch() {
       soundBeep(659, 0.1);
       setStatus('🚀 LAUNCHING: Spawning Antigravity with smart proxy...', '#00ffea');
+      const p = getCurrentPath();
+      const url = p ? '/api/launch?path=' + encodeURIComponent(p) : '/api/launch';
       try {
-        const res = await fetch('/api/launch', { method: 'POST' });
+        const res = await fetch(url, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           setStep(3);
@@ -553,7 +617,7 @@
           setStatus('ERROR: ' + (data.message || 'Launch failed'), '#ff0055');
         }
       } catch (err) {
-        setStatus('ERROR: Communication failure', '#ff0055');
+        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#ff0055');
       }
     }
 
@@ -561,8 +625,10 @@
     async function actionCreateLauncher() {
       soundBeep(523, 0.1);
       setStatus('🛠️ SHORTCUT: Generating Smart Desktop Launcher...', '#00f0ff');
+      const p = getCurrentPath();
+      const url = p ? '/api/create-launcher?path=' + encodeURIComponent(p) : '/api/create-launcher';
       try {
-        const res = await fetch('/api/create-launcher', { method: 'POST' });
+        const res = await fetch(url, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           soundBeep(1174, 0.15);
@@ -573,7 +639,7 @@
         }
       } catch (err) {
         soundBeep(250, 0.2);
-        setStatus('ERROR: Communication failure', '#ff0055');
+        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#ff0055');
       }
     }
 

@@ -3,6 +3,7 @@ package patcher
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // LogFunc defines a structured logging function callback
@@ -211,9 +213,12 @@ func scanUnixPs(targetSubstr string) string {
 
 // scanWindowsProcess queries powershell on Windows for running process matching target
 func scanWindowsProcess(targetName string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
 	cleanName := strings.TrimSuffix(targetName, ".exe")
 	filter := fmt.Sprintf("*%s*", cleanName)
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command",
+	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command",
 		fmt.Sprintf("(Get-Process | Where-Object { $_.Name -like '%s' -or $_.ProcessName -like '%s' } | Select-Object -ExpandProperty Path -ErrorAction SilentlyContinue)", filter, filter))
 	out, err := cmd.Output()
 	if err == nil {
@@ -562,6 +567,16 @@ func GetStandardLanguageServerCandidates() []string {
 		filepath.Join(home, "antigravity"),
 		filepath.Join(home, ".gemini"),
 		filepath.Join(userProfile, ".gemini"),
+		filepath.Join(userProfile, "Desktop", "Antigravity"),
+		filepath.Join(userProfile, "Desktop", "antigravity"),
+		filepath.Join(userProfile, "Desktop", "Antigravity IDE"),
+		filepath.Join(userProfile, "Desktop"),
+		filepath.Join(userProfile, "Downloads", "Antigravity"),
+		filepath.Join(userProfile, "Downloads", "Antigravity IDE"),
+		filepath.Join(userProfile, "Downloads"),
+		filepath.Join(home, "Desktop", "Antigravity"),
+		filepath.Join(home, "Desktop", "Antigravity IDE"),
+		filepath.Join(home, "Desktop"),
 	}
 
 	winBins := []string{
@@ -755,7 +770,25 @@ func FindAllLanguageServers(logger LogFunc) []string {
 			filepath.Join(home, ".gemini"),
 			filepath.Join(os.Getenv("USERPROFILE"), ".gemini"),
 			filepath.Join(os.Getenv("LOCALAPPDATA"), "agy"),
+			filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "Antigravity"),
+			filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "Antigravity IDE"),
+			filepath.Join(os.Getenv("USERPROFILE"), "Desktop"),
+			filepath.Join(os.Getenv("USERPROFILE"), "Downloads", "Antigravity"),
+			filepath.Join(os.Getenv("USERPROFILE"), "Downloads"),
+			filepath.Join(home, "Desktop", "Antigravity"),
+			filepath.Join(home, "Desktop"),
 		)
+		for _, parent := range []string{filepath.Join(os.Getenv("USERPROFILE"), "Desktop"), filepath.Join(os.Getenv("USERPROFILE"), "Downloads"), filepath.Join(home, "Desktop")} {
+			if parent != "" {
+				if entries, err := os.ReadDir(parent); err == nil {
+					for _, e := range entries {
+						if e.IsDir() && strings.Contains(strings.ToLower(e.Name()), "antigravity") {
+							candidateRoots = append(candidateRoots, filepath.Join(parent, e.Name()))
+						}
+					}
+				}
+			}
+		}
 	} else if runtime.GOOS == "linux" {
 		candidateRoots = append(candidateRoots,
 			filepath.Join(home, "Applications", "Antigravity"),

@@ -38,11 +38,11 @@ func TestGuiServerAndEndpoints(t *testing.T) {
 	}
 
 	bodyStr := string(bodyBytes)
-	if !strings.Contains(bodyStr, "DALROOT") {
-		t.Errorf("Expected embedded HTML to contain DALROOT logo text")
+	if !strings.Contains(bodyStr, "ANTIGRAVITY 2.6.0") {
+		t.Errorf("Expected embedded HTML to contain ANTIGRAVITY 2.6.0 logo text")
 	}
-	if !strings.Contains(bodyStr, "Antigravity PATCH") {
-		t.Errorf("Expected embedded HTML to contain Antigravity PATCH title")
+	if !strings.Contains(bodyStr, "Antigravity Location Fixer") {
+		t.Errorf("Expected embedded HTML to contain Antigravity Location Fixer title")
 	}
 
 	// Test 2: /api/detect endpoint
