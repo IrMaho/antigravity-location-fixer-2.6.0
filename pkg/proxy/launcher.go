@@ -46,6 +46,11 @@ func FindAllAntigravityExecutables() []AppTarget {
 
 	// 1. Windows direct program checks
 	if runtime.GOOS == "windows" {
+		// A. Authoritative Windows Registry Discovery (Uninstall keys)
+		for _, regTarget := range FindAntigravityExecutablesFromRegistry() {
+			add(regTarget.Name, regTarget.ExePath, regTarget.IsIDE)
+		}
+
 		localAppData := os.Getenv("LOCALAPPDATA")
 		progFiles := os.Getenv("PROGRAMFILES")
 		progFilesX86 := os.Getenv("ProgramFiles(x86)")
@@ -59,12 +64,59 @@ func FindAllAntigravityExecutables() []AppTarget {
 		// Antigravity IDE (VS Code based)
 		add("Antigravity IDE", filepath.Join(localAppData, "Programs", "Antigravity IDE", "Antigravity IDE.exe"), true)
 		add("Antigravity IDE", filepath.Join(progFiles, "Antigravity IDE", "Antigravity IDE.exe"), true)
+		add("Antigravity IDE", filepath.Join(progFilesX86, "Antigravity IDE", "Antigravity IDE.exe"), true)
 
-		// Desktop and Downloads discovery for custom/portable extractions
+		// Dynamic multi-user profile scanning (handles Run as Administrator where LOCALAPPDATA differs)
+		if usersDir, err := os.ReadDir("C:\\Users"); err == nil {
+			for _, u := range usersDir {
+				if u.IsDir() {
+					uDir := filepath.Join("C:\\Users", u.Name())
+					add("Antigravity IDE", filepath.Join(uDir, "AppData", "Local", "Programs", "Antigravity IDE", "Antigravity IDE.exe"), true)
+					add("Antigravity", filepath.Join(uDir, "AppData", "Local", "Programs", "antigravity", "Antigravity.exe"), false)
+					add("Antigravity", filepath.Join(uDir, "AppData", "Local", "Programs", "Antigravity", "Antigravity.exe"), false)
+				}
+			}
+		}
+
+		// Desktop and Start Menu shortcut discovery (.lnk auto-resolution)
 		userProfile := os.Getenv("USERPROFILE")
 		if userProfile == "" {
 			userProfile = home
 		}
+		appData := os.Getenv("APPDATA")
+		allUsersProfile := os.Getenv("ALLUSERSPROFILE")
+
+		shortcutDirs := []string{
+			filepath.Join(userProfile, "Desktop"),
+			"C:\\Users\\Public\\Desktop",
+			filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs"),
+			filepath.Join(allUsersProfile, "Microsoft", "Windows", "Start Menu", "Programs"),
+		}
+
+		for _, sDir := range shortcutDirs {
+			if sDir == "" {
+				continue
+			}
+			if entries, err := os.ReadDir(sDir); err == nil {
+				for _, e := range entries {
+					eLower := strings.ToLower(e.Name())
+					if strings.Contains(eLower, "antigravity") && strings.HasSuffix(eLower, ".lnk") {
+						lnkPath := filepath.Join(sDir, e.Name())
+						target := ResolveWindowsShortcut(lnkPath)
+						if target != "" && target != lnkPath {
+							isIDE := strings.Contains(strings.ToLower(target), "ide")
+							name := "Antigravity"
+							if isIDE {
+								name = "Antigravity IDE"
+							}
+							add(name, target, isIDE)
+						}
+					}
+				}
+			}
+		}
+
+		// Desktop and Downloads discovery for custom/portable extractions
 		desktop := filepath.Join(userProfile, "Desktop")
 		downloads := filepath.Join(userProfile, "Downloads")
 
@@ -132,6 +184,46 @@ func FindAllAntigravityExecutables() []AppTarget {
 	}
 
 	return targets
+}
+
+// IsInstallerPath detects whether a selected executable is a downloaded setup/installer rather than the installed app.
+func IsInstallerPath(p string) bool {
+	if p == "" {
+		return false
+	}
+	clean := filepath.Clean(p)
+	fi, err := os.Stat(clean)
+	if err != nil || fi.IsDir() {
+		return false
+	}
+	base := strings.ToLower(filepath.Base(clean))
+	if !strings.HasSuffix(base, ".exe") {
+		return false
+	}
+
+	// Keywords indicating setup/installer binaries
+	isInstallerPattern := strings.Contains(base, "setup") ||
+		strings.Contains(base, "installer") ||
+		strings.Contains(base, "-x64") ||
+		strings.Contains(base, "_x64") ||
+		strings.HasPrefix(base, "antigravity-") ||
+		strings.HasPrefix(base, "antigravity_")
+
+	// If it has resources/app or resources/app.asar nearby, it's an installed app, not a standalone installer
+	dir := filepath.Dir(clean)
+	hasAppResources := false
+	for _, sub := range []string{
+		filepath.Join("resources", "app"),
+		filepath.Join("resources", "app.asar"),
+		filepath.Join("resources", "bin", "language_server.exe"),
+	} {
+		if _, err := os.Stat(filepath.Join(dir, sub)); err == nil {
+			hasAppResources = true
+			break
+		}
+	}
+
+	return isInstallerPattern && !hasAppResources
 }
 
 // FindAntigravityExecutable finds the main Antigravity GUI application

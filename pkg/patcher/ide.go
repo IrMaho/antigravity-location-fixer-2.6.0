@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -93,7 +94,11 @@ func FindAllIdeMainJs() []string {
 		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Antigravity IDE", "resources", "app", "main.js"),
 		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Antigravity IDE", "resources", "app", "dist", "main.js"),
 		filepath.Join(os.Getenv("PROGRAMFILES"), "Antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("PROGRAMFILES"), "Antigravity IDE", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("PROGRAMFILES"), "Antigravity IDE", "resources", "app", "main.js"),
 		filepath.Join(os.Getenv("ProgramFiles(x86)"), "Antigravity", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("ProgramFiles(x86)"), "Antigravity IDE", "resources", "app", "out", "main.js"),
+		filepath.Join(os.Getenv("ProgramFiles(x86)"), "Antigravity IDE", "resources", "app", "main.js"),
 		filepath.Join(home, "Desktop", "Antigravity", "resources", "app", "out", "main.js"),
 		filepath.Join(home, "Desktop", "Antigravity", "resources", "app", "main.js"),
 		filepath.Join(home, "Desktop", "Antigravity IDE", "resources", "app", "out", "main.js"),
@@ -120,7 +125,25 @@ func FindAllIdeMainJs() []string {
 		add(c)
 	}
 
-	// Dynamic folder search across Desktop and Downloads for custom folder names
+	// Multi-user profile scanning on Windows (handles Administrator elevations)
+	if runtime.GOOS == "windows" {
+		if usersDir, err := os.ReadDir("C:\\Users"); err == nil {
+			for _, u := range usersDir {
+				if u.IsDir() {
+					uDir := filepath.Join("C:\\Users", u.Name())
+					for _, appSub := range []string{
+						filepath.Join("AppData", "Local", "Programs", "Antigravity IDE"),
+						filepath.Join("AppData", "Local", "Programs", "Antigravity"),
+						filepath.Join("AppData", "Local", "Programs", "antigravity"),
+					} {
+						for _, sub := range jsSubpaths {
+							add(filepath.Join(uDir, appSub, sub))
+						}
+					}
+				}
+			}
+		}
+	}
 	userProfile := os.Getenv("USERPROFILE")
 	if userProfile == "" {
 		userProfile = home

@@ -46,17 +46,20 @@ type Response struct {
 
 // DetectResponse represents auto-detection details for the frontend.
 type DetectResponse struct {
-	App            string `json:"app"`
-	Path           string `json:"path"`
-	Detected       bool   `json:"detected"`
-	Proxy          string `json:"proxy"`
-	Mode           string `json:"mode"`
-	VpnActive      bool   `json:"vpn_active"`
-	OS             string `json:"os"`
-	Arch           string `json:"arch"`
-	WrapperActive  bool   `json:"wrapper_active"`
-	RunningPID     int    `json:"running_pid"`
-	ProcessRunning bool   `json:"process_running"`
+	App            string          `json:"app"`
+	Path           string          `json:"path"`
+	Detected       bool            `json:"detected"`
+	Proxy          string          `json:"proxy"`
+	Mode           string          `json:"mode"`
+	VpnActive      bool            `json:"vpn_active"`
+	OS             string          `json:"os"`
+	Arch           string          `json:"arch"`
+	WrapperActive  bool            `json:"wrapper_active"`
+	RunningPID     int             `json:"running_pid"`
+	ProcessRunning bool            `json:"process_running"`
+	IsInstaller    bool            `json:"is_installer,omitempty"`
+	Notice         string          `json:"notice,omitempty"`
+	Targets        map[string]bool `json:"targets,omitempty"`
 }
 
 // NewServer initializes a new GUI loopback server on an ephemeral port.
@@ -159,49 +162,168 @@ func resolveProxyForMode(mode string) (string, string) {
 	}
 }
 
-func (s *Server) handleDetect(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
-
-	var targetPath string
+// resolveComponents finds the four primary components from a given base path or searches the system.
+func resolveComponents(customPath string) (mainJs, ls, ext, asar string) {
 	if customPath != "" {
+		resolved := proxy.ResolveWindowsShortcut(customPath)
+		if resolved != "" && resolved != customPath {
+			customPath = resolved
+		}
+
 		if fi, err := os.Stat(customPath); err == nil {
-			targetPath = customPath
+			var appDir string
 			if fi.IsDir() {
-				candidates := []string{
-					filepath.Join(customPath, "Antigravity IDE.exe"),
-					filepath.Join(customPath, "Antigravity.exe"),
-					filepath.Join(customPath, "resources", "app", "out", "main.js"),
-					filepath.Join(customPath, "resources", "app", "main.js"),
-					filepath.Join(customPath, "resources", "bin", "language_server.exe"),
+				appDir = customPath
+			} else {
+				base := strings.ToLower(filepath.Base(customPath))
+				if strings.HasSuffix(base, ".exe") {
+					appDir = filepath.Dir(customPath)
+				} else if strings.HasSuffix(base, ".js") {
+					mainJs = customPath
+					appDir = filepath.Dir(filepath.Dir(filepath.Dir(customPath)))
+				} else if strings.HasSuffix(base, ".asar") {
+					asar = customPath
+					appDir = filepath.Dir(filepath.Dir(customPath))
 				}
-				for _, c := range candidates {
-					if fileExists(c) {
-						targetPath = c
+			}
+
+			if appDir != "" {
+				// 1. Check main.js
+				if mainJs == "" {
+					for _, sub := range []string{
+						filepath.Join("resources", "app", "out", "main.js"),
+						filepath.Join("resources", "app", "main.js"),
+						filepath.Join("resources", "app", "dist", "main.js"),
+					} {
+						p := filepath.Join(appDir, sub)
+						if fileExists(p) {
+							mainJs = p
+							break
+						}
+					}
+				}
+
+				// 2. Check language server
+				for _, sub := range []string{
+					filepath.Join("resources", "bin", "language_server.exe"),
+					filepath.Join("resources", "language_server.exe"),
+					filepath.Join("resources", "bin", "language_server"),
+					filepath.Join("resources", "language_server"),
+				} {
+					p := filepath.Join(appDir, sub)
+					if fileExists(p) {
+						ls = p
 						break
+					}
+				}
+
+				// 3. Check extension.js (scan extensions directory dynamically)
+				extDir := filepath.Join(appDir, "resources", "app", "extensions")
+				if fiExt, errExt := os.Stat(extDir); errExt == nil && fiExt.IsDir() {
+					if entries, errEntries := os.ReadDir(extDir); errEntries == nil {
+						for _, e := range entries {
+							if e.IsDir() {
+								for _, sub := range []string{
+									filepath.Join("vscode", "extension.js"),
+									"extension.js",
+									filepath.Join("dist", "extension.js"),
+								} {
+									p := filepath.Join(extDir, e.Name(), sub)
+									if fileExists(p) {
+										ext = p
+										break
+									}
+								}
+								if ext != "" {
+									break
+								}
+							}
+						}
+					}
+				}
+
+				// 4. Check app.asar
+				if asar == "" {
+					p := filepath.Join(appDir, "resources", "app.asar")
+					if fileExists(p) {
+						asar = p
 					}
 				}
 			}
 		}
 	}
 
-	if targetPath == "" {
-		targetPath = patcher.FindIdeMainJs()
+	// Dynamic fallbacks
+	if mainJs == "" {
+		mainJs = patcher.FindIdeMainJs()
 	}
-	if targetPath == "" {
-		targetPath = proxy.FindAntigravityExecutable()
-	}
-	if targetPath == "" {
-		targetPath = patcher.FindLanguageServerModular(nil)
-		if targetPath == "" {
-			targetPath = patcher.FindLanguageServer()
+	if ls == "" {
+		ls = patcher.FindLanguageServerModular(nil)
+		if ls == "" {
+			ls = patcher.FindLanguageServer()
 		}
 	}
-	if targetPath == "" {
-		targetPath = patcher.FindAgy()
+	if ext == "" {
+		ext = patcher.FindVsCodeExtension()
+	}
+	if asar == "" {
+		asar = patcher.FindAntigravityAsar()
 	}
 
-	detected := targetPath != ""
+	return
+}
+
+func (s *Server) handleDetect(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
+
+	if customPath != "" {
+		resolved := proxy.ResolveWindowsShortcut(customPath)
+		if resolved != "" && resolved != customPath {
+			customPath = resolved
+		}
+	}
+
+	var isInstaller bool
+	var notice string
+	if customPath != "" && proxy.IsInstallerPath(customPath) {
+		isInstaller = true
+		realMainJs := patcher.FindIdeMainJs()
+		realExe := proxy.FindAntigravityExecutable()
+		if realMainJs != "" {
+			notice = fmt.Sprintf("⚠️ مسیر انتخابی (%s) فایل نصبی است. سیستم به صورت خودکار به ادیتور نصب‌شده متصل شد: %s", filepath.Base(customPath), realMainJs)
+			customPath = realMainJs
+		} else if realExe != "" {
+			notice = fmt.Sprintf("⚠️ مسیر انتخابی (%s) فایل نصبی است. سیستم به صورت خودکار به ادیتور نصب‌شده متصل شد: %s", filepath.Base(customPath), realExe)
+			customPath = realExe
+		} else {
+			notice = fmt.Sprintf("⚠️ فایل انتخابی (%s) یک فایل نصبی (Installer) است، نه ادیتور نصب‌شده! لطفاً ابتدا ادیتور را نصب فرمایید.", filepath.Base(customPath))
+		}
+	}
+
+	mainJs, ls, ext, _ := resolveComponents(customPath)
+
+	targetPath := customPath
+	if targetPath == "" || isInstaller {
+		if mainJs != "" {
+			targetPath = mainJs
+		} else if exe := proxy.FindAntigravityExecutable(); exe != "" {
+			targetPath = exe
+		} else if ls != "" {
+			targetPath = ls
+		} else if agy := patcher.FindAgy(); agy != "" {
+			targetPath = agy
+		}
+	}
+
+	targetsMap := map[string]bool{
+		"ide_main_js":     mainJs != "" && fileExists(mainJs),
+		"extension_js":    ext != "" && fileExists(ext),
+		"language_server": ls != "" && fileExists(ls),
+		"cli_agy":         patcher.FindAgy() != "",
+	}
+
+	detected := targetPath != "" && (!isInstaller || mainJs != "")
 
 	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	if mode == "" {
@@ -230,6 +352,9 @@ func (s *Server) handleDetect(w http.ResponseWriter, r *http.Request) {
 		WrapperActive:  wrapperActive,
 		RunningPID:     runningPID,
 		ProcessRunning: runningPID > 0,
+		IsInstaller:    isInstaller,
+		Notice:         notice,
+		Targets:        targetsMap,
 	}
 
 	_ = json.NewEncoder(w).Encode(resp)
@@ -265,79 +390,84 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 
 	_, _ = patcher.KillAntigravityProcesses()
 
-	var customMainJs, customLs, customExt, customAsar string
+	// 1. Shortcut resolution
 	if customPath != "" {
-		if fi, err := os.Stat(customPath); err == nil {
-			if fi.IsDir() {
-				for _, sub := range []string{
-					filepath.Join("resources", "app", "out", "main.js"),
-					filepath.Join("resources", "app", "main.js"),
-				} {
-					p := filepath.Join(customPath, sub)
-					if fileExists(p) {
-						customMainJs = p
-						break
-					}
-				}
-				customExt = filepath.Join(customPath, "resources", "app", "extensions", "agy", "vscode", "extension.js")
-				customAsar = filepath.Join(customPath, "resources", "app.asar")
-				customLs = filepath.Join(customPath, "resources", "bin", "language_server.exe")
-			} else {
-				base := strings.ToLower(filepath.Base(customPath))
-				if strings.HasSuffix(base, ".exe") {
-					appDir := filepath.Dir(customPath)
-					for _, sub := range []string{
-						filepath.Join("resources", "app", "out", "main.js"),
-						filepath.Join("resources", "app", "main.js"),
-					} {
-						p := filepath.Join(appDir, sub)
-						if fileExists(p) {
-							customMainJs = p
-							break
-						}
-					}
-					customExt = filepath.Join(appDir, "resources", "app", "extensions", "agy", "vscode", "extension.js")
-					customAsar = filepath.Join(appDir, "resources", "app.asar")
-					customLs = filepath.Join(appDir, "resources", "bin", "language_server.exe")
-				} else if strings.HasSuffix(base, ".js") {
-					customMainJs = customPath
-				} else if strings.HasSuffix(base, ".asar") {
-					customAsar = customPath
-				}
-			}
+		resolved := proxy.ResolveWindowsShortcut(customPath)
+		if resolved != "" && resolved != customPath {
+			customPath = resolved
 		}
 	}
 
+	// 2. Installer redirection or warning
+	if customPath != "" && proxy.IsInstallerPath(customPath) {
+		realMainJs := patcher.FindIdeMainJs()
+		realExe := proxy.FindAntigravityExecutable()
+		if realMainJs != "" {
+			customPath = realMainJs
+		} else if realExe != "" {
+			customPath = realExe
+		} else {
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"message": fmt.Sprintf("❌ فایل انتخابی شما یک فایل نصبی (Installer) است (%s). برای رفع تحریم و پچ، باید خود برنامه نصب‌شده Antigravity IDE را انتخاب فرمایید.", filepath.Base(customPath)),
+			})
+			return
+		}
+	}
+
+	customMainJs, customLs, customExt, customAsar := resolveComponents(customPath)
+
 	var patchedDetails []string
 	var errors []string
+	targetStatus := make(map[string]bool)
 
 	// Target 1: IDE main.js
 	if _, err := patcher.PatchIdeMainJs(customMainJs); err == nil {
 		patchedDetails = append(patchedDetails, "IDE main.js")
-	} else if customMainJs != "" && fileExists(customMainJs) {
-		errors = append(errors, fmt.Sprintf("IDE main.js: %v", err))
+		targetStatus["ide_main_js"] = true
+	} else {
+		targetStatus["ide_main_js"] = false
+		if customMainJs != "" {
+			errors = append(errors, fmt.Sprintf("IDE main.js: %v", err))
+		}
 	}
 
-	// Target 2: Core Language Server
-	if _, err := patcher.PatchLanguageServer(customLs); err == nil {
-		patchedDetails = append(patchedDetails, "Language Server")
-	} else if customLs != "" && fileExists(customLs) {
-		errors = append(errors, fmt.Sprintf("Language Server: %v", err))
-	}
-
-	// Target 3: Antigravity CLI (agy)
-	if _, err := patcher.PatchAgy(""); err == nil {
-		patchedDetails = append(patchedDetails, "CLI (agy)")
-	}
-
-	// Target 4: VS Code extension
+	// Target 2: VS Code Extension (re-download guard & return object self-healing)
 	if _, err := patcher.PatchVsCodeExtension(customExt); err == nil {
 		patchedDetails = append(patchedDetails, "VS Code Extension")
+		targetStatus["extension_js"] = true
+	} else {
+		targetStatus["extension_js"] = false
+		if customExt != "" {
+			errors = append(errors, fmt.Sprintf("VS Code Extension: %v", err))
+		}
+	}
+
+	// Target 3: Core Language Server
+	if _, err := patcher.PatchLanguageServer(customLs); err == nil {
+		patchedDetails = append(patchedDetails, "Language Server")
+		targetStatus["language_server"] = true
+	} else {
+		targetStatus["language_server"] = false
+		if customLs != "" {
+			errors = append(errors, fmt.Sprintf("Language Server: %v", err))
+		}
+	}
+
+	// Target 4: Antigravity CLI (agy)
+	if _, err := patcher.PatchAgy(""); err == nil {
+		patchedDetails = append(patchedDetails, "CLI (agy)")
+		targetStatus["cli_agy"] = true
+	} else {
+		targetStatus["cli_agy"] = false
 	}
 
 	// Target 5: ASAR Zero-Log
 	if _, err := patcher.PatchAsarZeroLog(customAsar); err == nil {
 		patchedDetails = append(patchedDetails, "Zero-Log ASAR")
+		targetStatus["zero_log"] = true
+	} else {
+		targetStatus["zero_log"] = false
 	}
 
 	// Target 6: Clear 429 quota cache & tokens
@@ -346,22 +476,29 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 	// Target 7: Desktop shortcut
 	_, _ = proxy.GenerateNoTunDesktopLauncherCustom(customPath, proxyURL)
 
-	// Check if any core target succeeded
-	success := len(patchedDetails) > 0
+	ideCoreSuccess := targetStatus["ide_main_js"] || targetStatus["extension_js"] || targetStatus["language_server"]
+	var success bool
 	var msg string
-	if success {
-		msg = fmt.Sprintf("All targets unlocked: [%s] & 429 Quota Reset!", strings.Join(patchedDetails, ", "))
+
+	if ideCoreSuccess {
+		success = true
+		msg = fmt.Sprintf("✔ تمام بخش‌های ضروری با موفقیت آنلاک و پچ شدند: [%s] (سهمیه ۴۲۹ نیز ریست شد)", strings.Join(patchedDetails, ", "))
+	} else if targetStatus["cli_agy"] {
+		success = false
+		msg = "⚠️ اخطار مهم: فقط ابزار CLI پچ شد! فایل‌های اصلی ادیتور (IDE main.js) یافت نشدند. لطفاً با دکمه [📁 Browse...] فایل Antigravity IDE.exe یا با [📂 Folder] پوشه نصب را انتخاب فرمایید."
 	} else {
+		success = false
 		if len(errors) > 0 {
-			msg = "Error patching targets: " + strings.Join(errors, "; ")
+			msg = "خطا در پچ اهداف: " + strings.Join(errors, "; ")
 		} else {
-			msg = "No Antigravity targets found! Please use [📁 Browse...] or [📂 Folder] to select your installation path."
+			msg = "هیچ هدفی از Antigravity پیدا نشد! لطفاً با [📁 Browse...] یا [📂 Folder] فایل یا پوشه ادیتور را انتخاب نمایید."
 		}
 	}
 
-	_ = json.NewEncoder(w).Encode(Response{
-		Success: success,
-		Message: msg,
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": success,
+		"message": msg,
+		"targets": targetStatus,
 	})
 }
 
@@ -391,6 +528,28 @@ func (s *Server) handleLaunch(w http.ResponseWriter, r *http.Request) {
 		mode = "auto"
 	}
 
+	// Shortcut resolution
+	if customPath != "" {
+		resolved := proxy.ResolveWindowsShortcut(customPath)
+		if resolved != "" && resolved != customPath {
+			customPath = resolved
+		}
+	}
+
+	// Installer protection
+	if customPath != "" && proxy.IsInstallerPath(customPath) {
+		realExe := proxy.FindAntigravityExecutable()
+		if realExe != "" {
+			customPath = realExe
+		} else {
+			_ = json.NewEncoder(w).Encode(Response{
+				Success: false,
+				Message: fmt.Sprintf("❌ فایل انتخابی (%s) فایل نصبی است؛ امکان اجرای مستقیم فایل نصبی با پروکسی وجود ندارد. لطفاً ابتدا Antigravity را نصب فرمایید.", filepath.Base(customPath)),
+			})
+			return
+		}
+	}
+
 	proxyURL, _ := resolveProxyForMode(mode)
 	if proxyURL == "" && strings.ToLower(mode) == "proxy" {
 		_ = json.NewEncoder(w).Encode(Response{
@@ -411,7 +570,7 @@ func (s *Server) handleLaunch(w http.ResponseWriter, r *http.Request) {
 
 	_ = json.NewEncoder(w).Encode(Response{
 		Success: true,
-		Message: "Antigravity launched successfully with injected proxy!",
+		Message: "Antigravity IDE با پروکسی و بای‌پس تحریم با موفقیت اجرا شد!",
 	})
 }
 
@@ -441,6 +600,19 @@ func (s *Server) handleCreateLauncher(w http.ResponseWriter, r *http.Request) {
 		mode = "auto"
 	}
 
+	// Shortcut resolution & installer protection
+	if customPath != "" {
+		resolved := proxy.ResolveWindowsShortcut(customPath)
+		if resolved != "" && resolved != customPath {
+			customPath = resolved
+		}
+	}
+	if customPath != "" && proxy.IsInstallerPath(customPath) {
+		if realExe := proxy.FindAntigravityExecutable(); realExe != "" {
+			customPath = realExe
+		}
+	}
+
 	proxyURL, _ := resolveProxyForMode(mode)
 	path, err := proxy.GenerateNoTunDesktopLauncherCustom(customPath, proxyURL)
 	if err != nil {
@@ -453,7 +625,7 @@ func (s *Server) handleCreateLauncher(w http.ResponseWriter, r *http.Request) {
 
 	_ = json.NewEncoder(w).Encode(Response{
 		Success: true,
-		Message: "Desktop shortcut created at " + path,
+		Message: fmt.Sprintf("Desktop launcher shortcut created at %s", path),
 	})
 }
 
@@ -485,6 +657,13 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	selectedPath = strings.TrimSpace(selectedPath)
+	if runtime.GOOS == "windows" {
+		resolved := proxy.ResolveWindowsShortcut(selectedPath)
+		if resolved != "" && resolved != selectedPath {
+			selectedPath = resolved
+		}
+	}
+
 	_ = json.NewEncoder(w).Encode(struct {
 		Success bool   `json:"success"`
 		Path    string `json:"path"`
@@ -501,8 +680,8 @@ func browseFileWindows() (string, error) {
 	script := `
 [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
 $d = New-Object System.Windows.Forms.OpenFileDialog
-$d.Title = 'Select Antigravity IDE Executable or main.js'
-$d.Filter = 'Antigravity Targets (*.exe;*.js)|*.exe;*.js|Executables (*.exe)|*.exe|JavaScript (*.js)|*.js|All Files (*.*)|*.*'
+$d.Title = 'Select Antigravity IDE Executable, Shortcut, or main.js'
+$d.Filter = 'Antigravity Targets (*.exe;*.lnk;*.js)|*.exe;*.lnk;*.js|Shortcuts (*.lnk)|*.lnk|Executables (*.exe)|*.exe|JavaScript (*.js)|*.js|All Files (*.*)|*.*'
 $desktop = [Environment]::GetFolderPath('Desktop')
 $d.InitialDirectory = $desktop
 if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
@@ -655,7 +834,18 @@ func (s *Server) handleDoctor(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	report := doctor.GenerateDiagnosticReport("5.4.6")
+	var reqBody struct {
+		Logs string `json:"logs"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&reqBody)
+	}
+
+	report := doctor.GenerateDiagnosticReport("2.6.0")
+	if strings.TrimSpace(reqBody.Logs) != "" {
+		report = fmt.Sprintf("%s\n\n================================================================================\n  📜 LIVE CLIENT SESSION LOGS (تاریخچه لاگ‌های اجرای این سشن):\n================================================================================\n%s\n", report, reqBody.Logs)
+	}
+
 	doctor.CopyToClipboard(report)
 	filePath, _ := doctor.SaveAndOpenReport(report)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{

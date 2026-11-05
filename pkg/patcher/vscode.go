@@ -69,7 +69,26 @@ func FindVsCodeExtension() string {
 			filepath.Join(home, "AppData", "Local", "Programs", "Antigravity", "resources", "app", "extensions"),
 			filepath.Join(localApp, "Programs", "antigravity", "resources", "app", "extensions"),
 			filepath.Join(home, "AppData", "Local", "Programs", "antigravity", "resources", "app", "extensions"),
+			filepath.Join(os.Getenv("PROGRAMFILES"), "Antigravity IDE", "resources", "app", "extensions"),
+			filepath.Join(os.Getenv("ProgramFiles(x86)"), "Antigravity IDE", "resources", "app", "extensions"),
+			filepath.Join(os.Getenv("PROGRAMFILES"), "Antigravity", "resources", "app", "extensions"),
+			filepath.Join(os.Getenv("ProgramFiles(x86)"), "Antigravity", "resources", "app", "extensions"),
 		)
+
+		// Multi-user profile scan for extensions
+		if usersDir, err := os.ReadDir("C:\\Users"); err == nil {
+			for _, u := range usersDir {
+				if u.IsDir() {
+					uDir := filepath.Join("C:\\Users", u.Name())
+					candidateDirs = append(candidateDirs,
+						filepath.Join(uDir, "AppData", "Local", "Programs", "Antigravity IDE", "resources", "app", "extensions"),
+						filepath.Join(uDir, "AppData", "Local", "Programs", "antigravity", "resources", "app", "extensions"),
+						filepath.Join(uDir, ".antigravity-ide", "extensions"),
+						filepath.Join(uDir, ".antigravity", "extensions"),
+					)
+				}
+			}
+		}
 
 		for _, parent := range []string{desktop, downloads} {
 			if parent != "" {

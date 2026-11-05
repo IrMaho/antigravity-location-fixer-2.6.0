@@ -1,101 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="ltr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Antigravity Location Fixer v2.6.0 - by IrMaho</title>
   <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #111827;
+      --bg-card-sub: #162032;
+      --border-color: #1f2937;
+      --border-accent: #374151;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent-indigo: #6366f1;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       user-select: none;
-      font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
-      font-size: 11px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, Tahoma, sans-serif;
+      font-size: 11.5px;
     }
 
     body {
-      background-color: #c0c0c0;
+      background-color: var(--bg-main);
+      color: var(--text-main);
       display: flex;
       justify-content: center;
       align-items: flex-start;
       margin: 0;
-      padding: 3px;
+      padding: 6px;
       height: 100vh;
       overflow: hidden;
     }
 
-    /* Classic Windows 95 Dialog Window */
-    .win95-window {
+    /* Main Window Shell */
+    .app-window {
       width: 100%;
       height: 100%;
-      background: #c0c0c0;
-      border: 2px solid;
-      border-color: #ffffff #808080 #808080 #ffffff;
-      padding: 3px;
+      background: var(--bg-card);
+      border: 1px solid #1f293d;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(99, 102, 241, 0.15);
+      border-radius: 8px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      overflow: hidden;
     }
 
-    /* Windows 95 Title Bar */
+    /* Title Bar */
     .title-bar {
-      background: linear-gradient(90deg, #000080, #1084d0);
-      padding: 3px 5px;
+      background: linear-gradient(90deg, #0e1526, #17223b);
+      padding: 6px 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4px;
+      border-bottom: 1px solid #1f293d;
     }
 
     .title-bar-text {
       color: #ffffff;
-      font-weight: bold;
-      letter-spacing: 0.5px;
+      font-weight: 700;
+      font-size: 11.5px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-tag {
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 9.5px;
+      font-weight: 600;
     }
 
     .title-bar-controls {
       display: flex;
-      gap: 2px;
+      gap: 5px;
     }
 
-    .close-btn {
-      width: 16px;
-      height: 14px;
-      background: #c0c0c0;
-      border: 1px solid;
-      border-color: #ffffff #000000 #000000 #ffffff;
-      color: #000;
-      font-size: 9px;
-      font-weight: bold;
+    .control-btn {
+      width: 18px;
+      height: 18px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 4px;
+      font-size: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      line-height: 1;
+      transition: all 0.15s ease;
     }
-    .close-btn:active {
-      border-color: #000000 #ffffff #ffffff #000000;
-      padding: 1px 0 0 1px;
+    .control-btn:hover {
+      background: #334155;
+      color: #ffffff;
+    }
+    .control-btn.close:hover {
+      background: #e11d48;
+      border-color: #f43f5e;
+      color: #ffffff;
     }
 
     /* Window Content Body */
     .window-body {
-      padding: 5px;
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
     }
 
-    /* Top Retro Demoscene Box */
+    /* Top Graphic Banner Box */
     .graphic-box {
       width: 100%;
-      height: 85px;
-      background: #000000;
-      border: 2px solid;
-      border-color: #808080 #ffffff #ffffff #808080;
+      height: 60px;
+      background: #050811;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
       position: relative;
       overflow: hidden;
       display: flex;
@@ -118,142 +152,283 @@
       text-align: center;
     }
 
-    .dalroot-logo {
-      font-size: 24px;
+    .brand-title {
+      font-size: 19px;
       font-weight: 900;
-      font-family: Impact, "Arial Black", sans-serif;
-      letter-spacing: 3px;
-      color: #ffff00;
-      text-shadow: 2px 2px #ff0000, 3px 3px #000080;
+      letter-spacing: 2.5px;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
       text-transform: uppercase;
+      filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.4));
     }
 
-    .logo-sub {
+    .brand-sub {
       font-size: 9px;
-      color: #00ffea;
+      color: #38bdf8;
       font-family: monospace;
-      font-weight: bold;
+      font-weight: 600;
       letter-spacing: 1px;
-      background: rgba(0,0,0,0.6);
-      padding: 1px 6px;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     /* Form Fields Section */
     .field-group {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
     }
 
     .field-label {
-      color: #000;
-      font-size: 11px;
+      color: #cbd5e1;
+      font-size: 10.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .field-input {
       width: 100%;
-      height: 22px;
-      background: #ffffff;
-      border: 2px solid;
-      border-color: #808080 #ffffff #ffffff #808080;
-      padding: 2px 6px;
-      color: #000000;
-      font-family: "Courier New", monospace;
-      font-size: 11px;
-      font-weight: bold;
+      height: 24px;
+      background: #0d1424;
+      border: 1px solid #1e293b;
+      border-radius: 4px;
+      padding: 2px 7px;
+      color: #e2e8f0;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 10.5px;
       outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus {
+      border-color: var(--accent-indigo);
     }
 
     .field-input.status-box {
-      background: #000000;
-      color: #00ff00;
-      font-family: "Courier New", monospace;
+      background: #070c18;
+      color: #4ade80;
+      font-weight: 600;
       text-align: center;
-      letter-spacing: 0.5px;
-      font-size: 11px;
+      letter-spacing: 0.3px;
+      border-color: #1e293b;
     }
 
-    /* Clean Info Panel */
+    /* Consolidated Status Pill Panel */
     .info-panel {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 2px 6px;
-      font-size: 10px;
-      font-weight: bold;
-      background: #d4d0c8;
-      border: 1px solid;
-      border-color: #808080 #ffffff #ffffff #808080;
+      padding: 4px 8px;
+      font-size: 9.5px;
+      font-weight: 600;
+      background: #0e1628;
+      border: 1px solid #1e293b;
+      border-radius: 5px;
     }
 
-    /* Classic Beveled Buttons */
+    /* Primary Steps Buttons */
     .buttons-row {
       display: flex;
-      justify-content: space-between;
-      gap: 5px;
-      margin-top: 3px;
-      padding-top: 4px;
-      border-top: 1px solid #808080;
-      box-shadow: 0 -1px 0 #ffffff;
+      gap: 6px;
     }
 
-    .win95-btn {
+    .step-btn {
       flex: 1;
-      height: 26px;
-      background: #c0c0c0;
-      border: 2px solid;
-      border-color: #ffffff #000000 #000000 #ffffff;
-      color: #000000;
+      height: 32px;
+      background: #17223b;
+      border: 1px solid #334155;
+      color: #f8fafc;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 700;
+      border-radius: 5px;
       cursor: pointer;
-      outline: 1px dotted transparent;
-      outline-offset: -4px;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 5px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .step-btn:hover {
+      background: #1e2d4d;
+      border-color: #475569;
+      transform: translateY(-1px);
+    }
+    .step-btn:active {
+      transform: translateY(0);
     }
 
-    .win95-btn:active {
-      border-color: #000000 #ffffff #ffffff #000000;
-      padding: 2px 0 0 2px;
+    .step-btn.step-active {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      border-color: #818cf8;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
     }
 
-    .win95-btn:focus {
-      outline: 1px dotted #000;
+    .sub-btn {
+      flex: 1;
+      height: 22px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sub-btn:hover {
+      background: #1e293b;
+      color: #f1f5f9;
+      border-color: #334155;
     }
 
-    .win95-btn:disabled {
-      color: #808080;
-      cursor: not-allowed;
+    .btn-action {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-action:hover {
+      background: #334155;
+      color: #ffffff;
     }
 
-    .win95-btn.step-active {
-      background: #eef2ff;
-      border-color: #000080 #808080 #808080 #000080;
-      color: #000080;
-      font-weight: 900;
+    /* Live Terminal Console Box */
+    .terminal-container {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 2px;
     }
 
-    /* Bottom Scroller / Credits */
-    .statusbar {
-      margin-top: 4px;
-      height: 20px;
-      border: 1px solid;
-      border-color: #808080 #ffffff #ffffff #808080;
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2px;
+    }
+
+    .terminal-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
       display: flex;
       align-items: center;
-      padding: 0 5px;
+      gap: 5px;
+    }
+
+    .terminal-log-box {
+      width: 100%;
+      height: 105px;
+      background: #050811;
+      border: 1px solid #1e293b;
+      border-radius: 5px;
+      padding: 6px 8px;
+      font-family: "Consolas", "Courier New", monospace;
       font-size: 10px;
-      color: #000;
-      background: #c0c0c0;
+      line-height: 1.45;
+      color: #94a3b8;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .terminal-log-box::-webkit-scrollbar {
+      width: 5px;
+    }
+    .terminal-log-box::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+
+    .log-line {
+      margin-bottom: 2px;
+    }
+    .log-info { color: #38bdf8; }
+    .log-success { color: #4ade80; font-weight: 600; }
+    .log-warn { color: #fbbf24; }
+    .log-error { color: #f87171; font-weight: 600; }
+
+    /* Target Verification Status Pills */
+    .target-pills-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-top: 1px;
+    }
+
+    .target-pill {
+      background: #0d1424;
+      border: 1px solid #1e293b;
+      border-radius: 4px;
+      padding: 3px 5px;
+      font-size: 9.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .target-pill.active {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #4ade80;
+    }
+    .target-pill.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .target-pill.error {
+      background: rgba(244, 63, 94, 0.1);
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #f87171;
+    }
+
+    /* Support Callout Box */
+    .support-tip-box {
+      font-size: 9.5px;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 4px;
+      padding: 3px 7px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Footer Statusbar */
+    .statusbar {
+      height: 20px;
+      background: #090e1a;
+      border-top: 1px solid #1a2234;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      font-size: 9.5px;
+      color: #64748b;
+    }
+
+    .marquee-container {
       overflow: hidden;
       white-space: nowrap;
+      flex: 1;
     }
 
     .marquee-text {
-      animation: marquee 14s linear infinite;
+      display: inline-block;
+      animation: marquee 16s linear infinite;
     }
 
     @keyframes marquee {
@@ -264,130 +439,168 @@
 </head>
 <body>
 
-  <!-- Windows 95 KeyGen Window -->
-  <div class="win95-window">
+  <div class="app-window">
     
     <!-- Titlebar -->
     <div class="title-bar">
       <div class="title-bar-text">
-        <span>⚡</span> Antigravity Location Fixer v2.6.0 - [IrMaho]
+        <span>⚡</span> Antigravity Location Fixer <span class="badge-tag">v2.6.0</span> &bull; [IrMaho]
       </div>
       <div class="title-bar-controls">
-        <div class="close-btn" onclick="soundBeep(400)">_</div>
-        <div class="close-btn" onclick="actionExit()">✕</div>
+        <div class="control-btn" onclick="soundBeep(400)">_</div>
+        <div class="control-btn close" onclick="actionExit()">✕</div>
       </div>
     </div>
 
     <div class="window-body">
 
-      <!-- Top Demoscene Graphic Box -->
+      <!-- Top Neon Starfield Banner -->
       <div class="graphic-box">
         <canvas id="retroCanvas"></canvas>
         <div class="logo-overlay">
-          <div class="dalroot-logo">ANTIGRAVITY 2.6.0</div>
-          <div class="logo-sub">&bull; LOCATION FIXER &amp; PATCHER SUITE (IRMAHO) &bull;</div>
+          <div class="brand-title">ANTIGRAVITY 2.6.0</div>
+          <div class="brand-sub">&bull; SMART LOCATION FIXER &amp; PROXY SUITE &bull;</div>
         </div>
       </div>
 
       <!-- Auto-Detected Installation Section -->
       <div class="field-group">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <label class="field-label">Target Application:</label>
-          <span id="detectedBadge" style="color:#008000; font-weight:bold; font-size:10px;">✔ [ AUTO-DETECTED ]</span>
+        <div class="field-label">
+          <span>Target Application:</span>
+          <span id="detectedBadge" style="color:#4ade80; font-size:9.5px;">✔ [ AUTO-DETECTED ]</span>
         </div>
-        <input type="text" class="field-input" id="targetApp" value="Detecting Antigravity..." readonly style="background:#f0f0f0; color:#000080;">
+        <input type="text" class="field-input" id="targetApp" value="Detecting Antigravity IDE..." readonly style="color:#38bdf8;">
       </div>
 
-      <!-- Installation Path Box (Auto-Detected + Manual Selection) -->
+      <!-- Installation Path Box (Auto-Detected + Manual Browse) -->
       <div class="field-group">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <label class="field-label">Target Installation Path (IDE / Executable):</label>
-          <span style="font-size:9.5px; color:#555;">(انتخاب خودکار یا دستی)</span>
+        <div class="field-label">
+          <span>Target Installation Path (IDE / Executable):</span>
+          <span style="font-size:9px; color:#64748b;">(انتخاب پوشه یا فایل دستی)</span>
         </div>
-        <div style="display:flex; gap:3px;">
-          <input type="text" class="field-input" id="pathInput" placeholder="مسیر پوشه یا فایل ادیتور (یا انتخاب با دکمه روبرو)..." style="flex:1; background:#ffffff; color:#000080;" oninput="onCustomPathChanged()">
-          <button class="win95-btn" onclick="actionBrowseFile()" style="width:75px; height:22px; font-size:10px; padding:0 3px;" title="انتخاب فایل اجرایی Antigravity IDE.exe یا main.js">📁 Browse...</button>
-          <button class="win95-btn" onclick="actionBrowseFolder()" style="width:65px; height:22px; font-size:10px; padding:0 3px;" title="انتخاب پوشه نصب روی دسکتاپ">📂 Folder</button>
+        <div style="display:flex; gap:4px;">
+          <input type="text" class="field-input" id="pathInput" placeholder="مسیر پوشه یا فایل ادیتور (یا انتخاب با دکمه‌های روبرو)..." style="flex:1;" oninput="onCustomPathChanged()">
+          <button class="btn-action" onclick="actionBrowseFile()" style="width:78px; height:24px; font-size:9.5px;" title="انتخاب فایل اجرایی Antigravity IDE.exe، شورتکات .lnk یا main.js">📁 Browse...</button>
+          <button class="btn-action" onclick="actionBrowseFolder()" style="width:68px; height:24px; font-size:9.5px;" title="انتخاب پوشه نصب ادیتور روی دسکتاپ">📂 Folder</button>
+        </div>
+      </div>
+
+      <!-- Target Verification Status Pills -->
+      <div class="target-pills-row">
+        <div id="targetPillMainJs" class="target-pill" title="هسته اصلی ادیتور (IDE main.js)">
+          <span id="dotMainJs">⚪</span> IDE main.js
+        </div>
+        <div id="targetPillExt" class="target-pill" title="اکستنشن VS Code و گارد دانلود">
+          <span id="dotExt">⚪</span> Extension
+        </div>
+        <div id="targetPillLs" class="target-pill" title="هسته لنگویج سرور (Language Server)">
+          <span id="dotLs">⚪</span> Lang Server
+        </div>
+        <div id="targetPillCli" class="target-pill" title="ابزار خط فرمان (CLI agy)">
+          <span id="dotCli">⚪</span> CLI (agy)
         </div>
       </div>
 
       <!-- Network & Proxy Mode Selector Section -->
       <div class="field-group">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <label class="field-label">Network / Proxy Mode:</label>
-          <span id="proxyBadge" style="color:#000080; font-weight:bold; font-size:9.5px;">🌐 Auto Detect</span>
+        <div class="field-label">
+          <span>Network / Proxy Mode:</span>
+          <span id="proxyBadge" style="color:#38bdf8; font-size:9.5px;">🌐 Auto Detect</span>
         </div>
-        <div style="display:flex; gap:3px;">
-          <select id="modeSelect" class="field-input" style="flex:1; background:#ffffff; color:#000080; cursor:pointer;" onchange="onNetworkModeChanged()">
-            <option value="auto" selected>⚡ Auto Detect (Auto-discover Proxy or System VPN / Direct)</option>
-            <option value="direct">🛡️ System VPN / Direct (Surfshark, WireGuard, OpenVPN, Direct)</option>
-            <option value="proxy">🔌 Local Proxy (127.0.0.1: v2rayN, NekoBox, Clash, Hiddify)</option>
+        <div style="display:flex; gap:4px;">
+          <select id="modeSelect" class="field-input" style="flex:1; cursor:pointer;" onchange="onNetworkModeChanged()">
+            <option value="auto" selected>⚡ خودکار (تشخیص خودکار وی‌پی‌ان یا پروکسی)</option>
+            <option value="direct">🛡️ مستقیم / وی‌پی‌ان سیستمی (Surfshark, WireGuard, OpenVPN)</option>
+            <option value="proxy">🔌 پروکسی محلی (v2rayN, NekoBox, Clash روی ۱۲۷.۰.۰.۱)</option>
           </select>
-          <button class="win95-btn" onclick="refreshNetworkStatus()" style="width:65px; height:22px; font-size:10px; padding:0 3px;" title="بررسی مجدد اتصال و وضعیت شبکه">🔄 Check</button>
+          <button class="btn-action" onclick="refreshNetworkStatus()" style="width:68px; height:24px; font-size:9.5px;" title="بررسی مجدد اتصال اینترنت و وضعیت پروکسی">🔄 Check</button>
         </div>
       </div>
 
-      <!-- Step-by-Step Guidance / Status Output Box -->
+      <!-- Status Output Indicator Box -->
       <div class="field-group">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <label class="field-label">Workflow Status:</label>
-          <span id="stepIndicator" style="color:#000080; font-weight:bold; font-size:9.5px;">[ Step 1: Auto-Fix ]</span>
+        <div class="field-label">
+          <span>Workflow Status:</span>
+          <span id="stepIndicator" style="color:#818cf8; font-size:9.5px;">[ Step 1: Auto-Fix ]</span>
         </div>
         <input type="text" class="field-input status-box" id="statusOutput" value="آماده: دکمه [ ① ⚡ Auto-Fix ] را برای پچ فوری کلیک کنید" readonly>
       </div>
 
-      <!-- Clean Consolidated System & Privacy Status Panel -->
+      <!-- Consolidated System & Privacy Status Panel -->
       <div class="info-panel">
         <span id="archBadge">⚙️ Windows / x86_64</span>
-        <span id="netStatusBadge" style="color:#006600; font-size:9.5px; font-weight:bold;">🌐 NET: OK</span>
-        <label style="cursor:pointer; display:flex; align-items:center; gap:4px; color:#005500; font-weight:bold; user-select:none;">
+        <span id="netStatusBadge" style="color:#4ade80;">🌐 NET: ONLINE</span>
+        <label style="cursor:pointer; display:flex; align-items:center; gap:4px; color:#4ade80; user-select:none;">
           <input type="checkbox" id="chkPrivacy" onchange="actionTogglePrivacy()"> 🛡️ Zero-Telemetry
         </label>
-        <span id="pidBadge" style="color:#000080;">🟢 PID: --</span>
+        <span id="pidBadge" style="color:#94a3b8;">⚪ IDE: STANDBY</span>
       </div>
 
-      <!-- Row 1: The 3 Main Sequential Steps (Spacious & Clean) -->
-      <div class="buttons-row" style="margin-top: 3px; padding-top: 4px;">
-        <button class="win95-btn step-active" id="btnPatch" onclick="actionPatch()" title="Step 1: Patch Core, CLI, IDE & VS Code + Setup Smart Proxy">① ⚡ Auto-Fix</button>
-        <button class="win95-btn" id="btnLaunch" onclick="actionLaunch()" title="Step 2: Start Antigravity with injected proxy">② 🚀 Launch IDE</button>
-        <button class="win95-btn" id="btnShortcut" onclick="actionCreateLauncher()" title="Step 3: Create Desktop Shortcut with Smart Proxy">③ 📌 Shortcut</button>
+      <!-- Row 1: The 3 Main Sequential Steps (Spacious & Modern) -->
+      <div class="buttons-row" style="margin-top: 1px;">
+        <button class="step-btn step-active" id="btnPatch" onclick="actionPatch()" title="Step 1: Patch Core, CLI, IDE & VS Code + Setup Smart Proxy">① ⚡ Auto-Fix</button>
+        <button class="step-btn" id="btnLaunch" onclick="actionLaunch()" title="Step 2: Start Antigravity with injected proxy & elevation guard">② 🚀 Launch IDE</button>
+        <button class="step-btn" id="btnShortcut" onclick="actionCreateLauncher()" title="Step 3: Create Desktop Shortcut with Smart Proxy">③ 📌 Shortcut</button>
+      </div>
+
+      <!-- Support Tip Callout -->
+      <div class="support-tip-box">
+        <span>💡</span>
+        <span>در صورت بروز هرگونه مشکل، روی <b>«📋 کپی لاگ»</b> یا <b>«💾 ذخیره لاگ»</b> کلیک کرده و متن یا فایل آن را در تلگرام ارسال فرمایید.</span>
+      </div>
+
+      <!-- Live Terminal Console & Logs (New Feature) -->
+      <div class="terminal-container">
+        <div class="terminal-header">
+          <div class="terminal-title">
+            <span>📟 Live Diagnostic Terminal &amp; Logs:</span>
+          </div>
+          <div style="display:flex; gap:3px;">
+            <button class="btn-action" onclick="copyConsoleLogs()" style="height:19px; padding:0 6px; font-size:9px;" title="کپی متن کامل لاگ‌ها در کلیپ‌بورد برای ارسال">📋 کپی لاگ (Copy)</button>
+            <button class="btn-action" onclick="exportConsoleLogs()" style="height:19px; padding:0 6px; font-size:9px;" title="ذخیره لاگ‌ها به صورت فایل تکست روی دسکتاپ و باز کردن آن">💾 ذخیره لاگ (Export)</button>
+            <button class="btn-action" onclick="clearConsoleLogs()" style="height:19px; padding:0 5px; font-size:9px;" title="پاک کردن کنسول">🧹 پاکسازی</button>
+          </div>
+        </div>
+        <div id="logConsole" class="terminal-log-box"></div>
       </div>
 
       <!-- Row 2: Secondary Maintenance & Utilities -->
-      <div class="buttons-row" style="margin-top: 3px; padding-top: 0; border-top: none; box-shadow: none;">
-        <button class="win95-btn" id="btnReset" onclick="actionReset()" title="Flush 429 quota tokens without chat loss">🧹 Reset 429</button>
-        <button class="win95-btn" id="btnRestore" onclick="actionRestore()" title="Revert to original .agybak backup">↺ Restore</button>
-        <button class="win95-btn" id="btnDoctor" onclick="actionDoctor()" title="Audit connection & proxy health">🩺 Doctor</button>
-        <button class="win95-btn" id="btnReport" onclick="actionReport()" title="Generate diagnostic report and copy to clipboard">📋 Report</button>
-        <button class="win95-btn" id="btnExit" onclick="actionExit()" title="Close application">✕ Exit</button>
+      <div class="buttons-row" style="margin-top: 1px;">
+        <button class="sub-btn" id="btnReset" onclick="actionReset()" title="Flush 429 quota tokens without chat loss">🧹 Reset 429</button>
+        <button class="sub-btn" id="btnRestore" onclick="actionRestore()" title="Revert to original .agybak backup">↺ Restore</button>
+        <button class="sub-btn" id="btnDoctor" onclick="actionDoctor()" title="Audit connection & proxy health">🩺 Doctor</button>
+        <button class="sub-btn" id="btnReport" onclick="exportConsoleLogs()" title="Generate diagnostic report and open text file">📋 Save Report</button>
+        <button class="sub-btn" id="btnExit" onclick="actionExit()" title="Close application">✕ Exit</button>
       </div>
 
-      <!-- Community, Star & Support Links -->
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:1px 4px; font-size:9.5px; border-top:1px dotted #808080; margin-top:2px;">
-        <a href="javascript:void(0)" onclick="openExternal('https://github.com/IrMaho/antigravity-location-fixer-2.6.0')" style="color:#000080; text-decoration:underline; font-weight:bold; cursor:pointer;" title="Support the project with a Star on GitHub">⭐ مخزن گیت‌هاب (Star on GitHub)</a>
-        <a href="javascript:void(0)" onclick="openExternal('https://github.com/IrMaho/antigravity-location-fixer-2.6.0/issues')" style="color:#000080; text-decoration:underline; font-weight:bold; cursor:pointer;" title="گزارش مشکلات در گیت‌هاب">💬 گزارش باگ و پشتیبانی</a>
+      <!-- Community Links -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:1px 2px; font-size:9.5px; border-top:1px solid #1e293b; margin-top:2px;">
+        <a href="javascript:void(0)" onclick="openExternal('https://github.com/IrMaho/antigravity-location-fixer-2.6.0')" style="color:#818cf8; text-decoration:none; font-weight:600;" title="Support with a Star on GitHub">⭐ مخزن گیت‌هاب (Star on GitHub)</a>
+        <a href="javascript:void(0)" onclick="openExternal('https://github.com/IrMaho/antigravity-location-fixer-2.6.0/issues')" style="color:#38bdf8; text-decoration:none; font-weight:600;" title="گزارش باگ یا ارسال لاگ">💬 گزارش باگ و پشتیبانی</a>
       </div>
 
-      <!-- Classic Statusbar -->
-      <div class="statusbar">
-        <span class="marquee-text">&bull;&bull;&bull; ⚡ فیکسر لوکیشن و تحریم آنتی‌گراویتی آیدیا ۲.۶.۰ • توسعه‌یافته توسط IRMAHO • 100% OFFLINE &amp; ZERO-TELEMETRY &bull;&bull;&bull; ⭐ GITHUB: https://github.com/IrMaho/antigravity-location-fixer-2.6.0 &bull;&bull;&bull;</span>
-      </div>
+    </div>
 
+    <!-- Statusbar -->
+    <div class="statusbar">
+      <div class="marquee-container">
+        <span class="marquee-text">&bull;&bull;&bull; ⚡ فیکسر لوکیشن و تحریم آنتی‌گراویتی آیدیا ۲.۶.۰ • توسعه‌یافته توسط IRMAHO • پشتیبانی از Surfshark و تمامی وی‌پی‌ان‌های سیستمی و پروکسی‌های لوکال • 100% OFFLINE &amp; ZERO-TELEMETRY &bull;&bull;&bull; ⭐ GITHUB: https://github.com/IrMaho/antigravity-location-fixer-2.6.0 &bull;&bull;&bull;</span>
+      </div>
     </div>
 
   </div>
 
   <script>
-    // --- Web Audio 8-bit Beep on Click ---
+    // --- Audio Feedback ---
     let audioCtx = null;
     function soundBeep(freq = 600, duration = 0.08) {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'square';
+        osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -396,7 +609,7 @@
       } catch (e) {}
     }
 
-    // --- Retro Classic Copper / Raster Starfield Canvas ---
+    // --- Starfield Background Canvas ---
     const canvas = document.getElementById('retroCanvas');
     const ctx = canvas.getContext('2d');
     let stars = [];
@@ -405,12 +618,12 @@
       canvas.width = canvas.parentElement.clientWidth;
       canvas.height = canvas.parentElement.clientHeight;
       stars = [];
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 45; i++) {
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          speed: 1 + Math.random() * 3,
-          color: ['#fff', '#00ffea', '#ff007f', '#ffff00'][Math.floor(Math.random() * 4)]
+          speed: 0.8 + Math.random() * 2,
+          color: ['#38bdf8', '#818cf8', '#c084fc', '#ffffff'][Math.floor(Math.random() * 4)]
         });
       }
     }
@@ -418,16 +631,14 @@
     window.addEventListener('resize', initCanvas);
 
     function drawRetroCanvas() {
-      ctx.fillStyle = '#050510';
+      ctx.fillStyle = '#050811';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       for (let s of stars) {
         s.x -= s.speed;
         if (s.x < 0) s.x = canvas.width;
         ctx.fillStyle = s.color;
-        ctx.fillRect(s.x, s.y, 2, 2);
+        ctx.fillRect(s.x, s.y, 1.8, 1.8);
       }
-
       requestAnimationFrame(drawRetroCanvas);
     }
     drawRetroCanvas();
@@ -437,19 +648,82 @@
     const pathInput = document.getElementById('pathInput');
     const targetApp = document.getElementById('targetApp');
     const detectedBadge = document.getElementById('detectedBadge');
+    const logConsole = document.getElementById('logConsole');
 
-    function setStatus(text, color = '#00ff00') {
+    const sessionLogs = [];
+
+    // Structured Live Logging Engine
+    function addLog(type, message) {
+      const time = new Date().toTimeString().split(' ')[0];
+      const entryText = `[${time}] [${type.toUpperCase()}] ${message}`;
+      sessionLogs.push(entryText);
+
+      if (logConsole) {
+        const line = document.createElement('div');
+        line.className = `log-line log-${type.toLowerCase()}`;
+        line.innerText = entryText;
+        logConsole.appendChild(line);
+        logConsole.scrollTop = logConsole.scrollHeight;
+      }
+      console.log(entryText);
+    }
+
+    function clearConsoleLogs() {
+      if (logConsole) logConsole.innerHTML = '';
+      sessionLogs.length = 0;
+      addLog('info', 'Console logs cleared.');
+    }
+
+    async function copyConsoleLogs() {
+      soundBeep(520, 0.08);
+      const text = sessionLogs.join('\n');
+      if (!text) {
+        alert('لاگی برای کپی وجود ندارد.');
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          addLog('success', 'تمام لاگ‌های این سشن در کلیپ‌بورد کپی شد (Ctrl+V).');
+          alert('📋 متن لاگ‌ها با موفقیت در کلیپ‌بورد کپی شد! می‌توانید مستقیماً برای پشتیبانی Paste کنید.');
+          return;
+        } catch (e) {}
+      }
+      addLog('warn', 'امکان کپی خودکار نبود؛ از دکمه ذخیره لاگ استفاده کنید.');
+    }
+
+    async function exportConsoleLogs() {
+      soundBeep(880, 0.1);
+      addLog('info', 'در حال ذخیره فایل لاگ روی دسکتاپ...');
+      try {
+        const res = await fetch('/api/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logs: sessionLogs.join('\n') })
+        });
+        const data = await res.json();
+        if (data.success) {
+          addLog('success', `فایل لاگ ذخیره شد: ${data.filePath || 'Desktop'}`);
+          alert(`📄 فایل گزارش و لاگ کامل ذخیره و باز شد!\n\nمحل فایل: ${data.filePath}\n\nمی‌توانید این فایل تکست را مستقیماً برای پشتیبانی ارسال فرمایید.`);
+        } else {
+          addLog('error', 'خطا در ذخیره فایل گزارش');
+        }
+      } catch (err) {
+        addLog('error', `ارور در ارسال لاگ: ${err.message}`);
+      }
+    }
+
+    function setStatus(text, color = '#4ade80') {
       statusBox.value = text;
       statusBox.style.color = color;
     }
 
-    // Open link in external system browser
     function openExternal(url) {
       soundBeep(520, 0.08);
+      addLog('info', `باز کردن لینک خارجی: ${url}`);
       fetch('/api/open-external?url=' + encodeURIComponent(url));
     }
 
-    // Workflow Step Manager (3 sequential primary steps)
     function setStep(stepNum) {
       const stepIndicator = document.getElementById('stepIndicator');
       const bPatch = document.getElementById('btnPatch');
@@ -480,64 +754,88 @@
       return p;
     }
 
+    function getNetworkMode() {
+      const sel = document.getElementById('modeSelect');
+      return sel ? sel.value : 'auto';
+    }
+
     let detectDebounceTimer = null;
     function onCustomPathChanged() {
       clearTimeout(detectDebounceTimer);
       detectDebounceTimer = setTimeout(() => {
+        addLog('info', `مسیر سفارشی تغییر کرد: ${getCurrentPath()}`);
         loadDetection(getCurrentPath());
-      }, 600);
+      }, 500);
+    }
+
+    function onNetworkModeChanged() {
+      soundBeep(600, 0.06);
+      addLog('info', `مود شبکه انتخاب شد: ${getNetworkMode()}`);
+      loadDetection(getCurrentPath());
+    }
+
+    function refreshNetworkStatus() {
+      soundBeep(700, 0.08);
+      addLog('info', 'در حال تست مجدد اتصال شبکه و پروکسی...');
+      loadDetection(getCurrentPath());
     }
 
     async function actionBrowseFile() {
       soundBeep(520, 0.08);
-      setStatus('📁 در حال باز کردن پنجره انتخاب فایل...', '#00f0ff');
+      addLog('info', 'باز کردن پنجره انتخاب فایل (OpenFileDialog)...');
       try {
         const res = await fetch('/api/browse?type=file');
         const data = await res.json();
         if (data.success && data.path) {
           pathInput.value = data.path;
           soundBeep(880, 0.1);
+          addLog('success', `فایل انتخاب شد: ${data.path}`);
           loadDetection(data.path);
         } else {
-          setStatus('READY: بدون تغییر مسیر', '#00ff00');
+          addLog('info', 'انتخاب فایل لغو شد.');
         }
       } catch (err) {
-        setStatus('ERROR: ' + (err.message || 'خطا در باز کردن دیالوگ انتخاب فایل'), '#ff0055');
+        addLog('error', `خطا در باز کردن دیالوگ: ${err.message}`);
       }
     }
 
     async function actionBrowseFolder() {
       soundBeep(520, 0.08);
-      setStatus('📂 در حال باز کردن پنجره انتخاب پوشه...', '#00f0ff');
+      addLog('info', 'باز کردن پنجره انتخاب پوشه (FolderBrowserDialog)...');
       try {
         const res = await fetch('/api/browse?type=folder');
         const data = await res.json();
         if (data.success && data.path) {
           pathInput.value = data.path;
           soundBeep(880, 0.1);
+          addLog('success', `پوشه انتخاب شد: ${data.path}`);
           loadDetection(data.path);
         } else {
-          setStatus('READY: بدون تغییر پوشه', '#00ff00');
+          addLog('info', 'انتخاب پوشه لغو شد.');
         }
       } catch (err) {
-        setStatus('ERROR: ' + (err.message || 'خطا در باز کردن دیالوگ انتخاب پوشه'), '#ff0055');
+        addLog('error', `خطا در باز کردن دیالوگ: ${err.message}`);
       }
     }
 
-    function getNetworkMode() {
-      const sel = document.getElementById('modeSelect');
-      return sel ? sel.value : 'auto';
-    }
-
-    function onNetworkModeChanged() {
-      soundBeep(600, 0.06);
-      loadDetection(getCurrentPath());
-    }
-
-    function refreshNetworkStatus() {
-      soundBeep(700, 0.08);
-      setStatus('🌐 NETWORK: Testing connection & proxy...', '#00ffea');
-      loadDetection(getCurrentPath());
+    function updateTargetPills(targets) {
+      if (!targets) return;
+      const setPill = (pillId, dotId, ok) => {
+        const pill = document.getElementById(pillId);
+        const dot = document.getElementById(dotId);
+        if (!pill || !dot) return;
+        if (ok) {
+          pill.className = 'target-pill active';
+          dot.innerText = '🟢';
+        } else {
+          pill.className = 'target-pill';
+          dot.innerText = '⚪';
+        }
+      };
+      setPill('targetPillMainJs', 'dotMainJs', targets.ide_main_js);
+      setPill('targetPillExt', 'dotExt', targets.extension_js);
+      setPill('targetPillLs', 'dotLs', targets.language_server);
+      setPill('targetPillCli', 'dotCli', targets.cli_agy);
     }
 
     // Auto-Detect on Load or Custom Path
@@ -555,15 +853,26 @@
           pathInput.value = data.path;
         }
 
+        if (data.targets) {
+          updateTargetPills(data.targets);
+        }
+
+        if (data.notice) {
+          addLog(data.is_installer ? 'warn' : 'info', data.notice);
+          if (data.is_installer) {
+            setStatus(data.notice, '#fbbf24');
+          }
+        }
+
         const proxyBadge = document.getElementById('proxyBadge');
         if (proxyBadge) {
           proxyBadge.innerText = '🌐 ' + (data.proxy || 'Direct');
           if (data.proxy && data.proxy.includes('No active')) {
-            proxyBadge.style.color = '#c00000';
+            proxyBadge.style.color = '#f87171';
           } else if (data.vpn_active || (data.proxy && data.proxy.includes('Direct'))) {
-            proxyBadge.style.color = '#008000';
+            proxyBadge.style.color = '#4ade80';
           } else {
-            proxyBadge.style.color = '#000080';
+            proxyBadge.style.color = '#38bdf8';
           }
         }
 
@@ -571,13 +880,13 @@
         if (netStatusBadge) {
           if (data.vpn_active) {
             netStatusBadge.innerText = '🛡️ VPN: ACTIVE';
-            netStatusBadge.style.color = '#006600';
+            netStatusBadge.style.color = '#4ade80';
           } else if (data.proxy && !data.proxy.includes('No active') && !data.proxy.includes('Direct')) {
             netStatusBadge.innerText = '🔌 PROXY: ACTIVE';
-            netStatusBadge.style.color = '#000080';
+            netStatusBadge.style.color = '#38bdf8';
           } else {
             netStatusBadge.innerText = '🌐 DIRECT: ONLINE';
-            netStatusBadge.style.color = '#006600';
+            netStatusBadge.style.color = '#4ade80';
           }
         }
 
@@ -590,10 +899,10 @@
         if (pidBadge) {
           if (data.process_running && data.running_pid > 0) {
             pidBadge.innerText = '🟢 PID: ' + data.running_pid;
-            pidBadge.style.color = '#006600';
+            pidBadge.style.color = '#4ade80';
           } else {
             pidBadge.innerText = '⚪ IDE: STANDBY';
-            pidBadge.style.color = '#555555';
+            pidBadge.style.color = '#94a3b8';
           }
         }
 
@@ -604,41 +913,51 @@
 
         if (data.detected) {
           detectedBadge.innerText = '✔ [ AUTO-DETECTED ]';
-          detectedBadge.style.color = '#008000';
+          detectedBadge.style.color = '#4ade80';
           setStep(1);
-          setStatus('READY: کلیک روی [ ① ⚡ Auto-Fix ] برای پچ فوری و تنظیم پروکسی', '#00ff00');
+          if (!data.is_installer) {
+            setStatus('READY: کلیک روی [ ① ⚡ Auto-Fix ] برای پچ فوری و تنظیم اتصال', '#4ade80');
+          }
+          addLog('info', `هدف ادیتور شناسایی شد: ${data.path}`);
         } else {
           detectedBadge.innerText = '⚠️ [ مسیر دستی ]';
-          detectedBadge.style.color = '#c00000';
-          setStatus('NOTICE: مسیر ادیتور به صورت خودکار شناسایی نشد؛ با 📁 Browse یا 📂 Folder انتخاب کنید', '#ffff00');
+          detectedBadge.style.color = '#f87171';
+          if (!data.is_installer) {
+            setStatus('NOTICE: مسیر ادیتور به صورت خودکار شناسایی نشد؛ با 📁 Browse انتخاب کنید', '#fbbf24');
+          }
+          addLog('warn', 'مسیر خودکار یافت نشد؛ نیاز به انتخاب دستی.');
         }
       } catch (err) {
         setStep(1);
-        setStatus('READY: مسیر را تعیین کرده و روی [ ① ⚡ Auto-Fix ] کلیک کنید', '#00ff00');
+        setStatus('READY: مسیر را تعیین کرده و روی [ ① ⚡ Auto-Fix ] کلیک کنید', '#4ade80');
+        addLog('error', `ارور در ارتباط با سرویس تشخیص: ${err.message}`);
       }
     }
-    window.addEventListener('DOMContentLoaded', () => loadDetection());
 
-    // Toggle Privacy & Zero-Telemetry Wrapper Checkbox
+    // Toggle Privacy & Zero-Telemetry Wrapper
     async function actionTogglePrivacy() {
       soundBeep(740, 0.1);
       const chk = document.getElementById('chkPrivacy');
-      setStatus('🛡️ PRIVACY: Updating Zero-Telemetry configuration...', '#ffff00');
+      setStatus('🛡️ PRIVACY: Updating Zero-Telemetry configuration...', '#fbbf24');
+      addLog('info', 'در حال تغییر وضعیت پرچم‌های Zero-Telemetry...');
       try {
         const res = await fetch('/api/privacy', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           soundBeep(1174, 0.15);
-          setStatus('✔ ' + (data.message || 'Privacy state updated'), '#00ff00');
+          setStatus('✔ ' + (data.message || 'Privacy state updated'), '#4ade80');
+          addLog('success', data.message || 'Zero-Telemetry به روز شد');
           loadDetection(getCurrentPath());
         } else {
           soundBeep(250, 0.2);
-          setStatus('ERROR: ' + (data.message || 'Privacy toggle failed'), '#ff0055');
+          setStatus('ERROR: ' + (data.message || 'Privacy toggle failed'), '#f87171');
+          addLog('error', `خطا در Zero-Telemetry: ${data.message}`);
           if (chk) chk.checked = !chk.checked;
         }
       } catch (err) {
         soundBeep(250, 0.2);
-        setStatus('ERROR: Communication failure', '#ff0055');
+        setStatus('ERROR: Communication failure', '#f87171');
+        addLog('error', `قطع ارتباط سرور: ${err.message}`);
         if (chk) chk.checked = !chk.checked;
       }
     }
@@ -646,7 +965,8 @@
     // Patch Action (Step 1)
     async function actionPatch() {
       soundBeep(880, 0.12);
-      setStatus('STEP 1/3: در حال پچ اهداف و ریست سهمیه کووتا...', '#ffff00');
+      setStatus('STEP 1/3: در حال پچ اهداف و ریست سهمیه کووتا...', '#fbbf24');
+      addLog('info', 'شروع عملیات پچ اهداف ادیتور و ریست کش سهمیه...');
       const p = getCurrentPath();
       const mode = getNetworkMode();
       let url = '/api/patch?mode=' + encodeURIComponent(mode);
@@ -654,22 +974,31 @@
       try {
         const res = await fetch(url, { method: 'POST' });
         const data = await res.json();
-        soundBeep(1174, 0.18);
+        if (data.targets) {
+          updateTargetPills(data.targets);
+        }
         if (data.success) {
+          soundBeep(1174, 0.18);
           setStep(2);
-          setStatus('✔ ' + (data.message || 'STEP 1 DONE! Next: Click [ ② 🚀 Launch IDE ]'), '#00ff00');
+          setStatus(data.message || '✔ پچ اهداف با موفقیت انجام شد! دکمه [ ② 🚀 Launch IDE ] را بزنید.', '#4ade80');
+          addLog('success', data.message || 'پچ با موفقیت انجام شد');
         } else {
-          setStatus('ERROR: ' + (data.message || 'Patch failed'), '#ff0055');
+          soundBeep(250, 0.2);
+          setStatus(data.message || 'خطا در عملیات پچ', '#f87171');
+          addLog('error', `پچ ناموفق: ${data.message}`);
         }
       } catch (err) {
-        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#ff0055');
+        soundBeep(250, 0.2);
+        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#f87171');
+        addLog('error', `قطع ارتباط با ایجنت پچر: ${err.message}`);
       }
     }
 
     // Launch Action (Step 2)
     async function actionLaunch() {
       soundBeep(659, 0.1);
-      setStatus('🚀 LAUNCHING: Spawning Antigravity with smart proxy...', '#00ffea');
+      setStatus('🚀 LAUNCHING: Spawning Antigravity with smart connection...', '#38bdf8');
+      addLog('info', 'در حال باز کردن Antigravity IDE (محافظت خودکار دسترسی ادمین UAC)...');
       const p = getCurrentPath();
       const mode = getNetworkMode();
       let url = '/api/launch?mode=' + encodeURIComponent(mode);
@@ -679,19 +1008,23 @@
         const data = await res.json();
         if (data.success) {
           setStep(3);
-          setStatus('🚀 RUNNING: Antigravity active! Optional: Click [ ③ 📌 Shortcut ]', '#00ffea');
+          setStatus('🚀 RUNNING: Antigravity active! Optional: Click [ ③ 📌 Shortcut ]', '#38bdf8');
+          addLog('success', data.message || 'Antigravity با موفقیت اجرا گردید!');
         } else {
-          setStatus('ERROR: ' + (data.message || 'Launch failed'), '#ff0055');
+          setStatus('ERROR: ' + (data.message || 'Launch failed'), '#f87171');
+          addLog('error', `اجرای ناموفق: ${data.message}`);
         }
       } catch (err) {
-        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#ff0055');
+        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#f87171');
+        addLog('error', `ارور در باز کردن ادیتور: ${err.message}`);
       }
     }
 
     // Create Desktop Shortcut Action (Step 3)
     async function actionCreateLauncher() {
       soundBeep(523, 0.1);
-      setStatus('🛠️ SHORTCUT: Generating Smart Desktop Launcher...', '#00f0ff');
+      setStatus('🛠️ SHORTCUT: Generating Smart Desktop Launcher...', '#818cf8');
+      addLog('info', 'در حال ایجاد شورتکات هوشمند روی دسکتاپ...');
       const p = getCurrentPath();
       const mode = getNetworkMode();
       let url = '/api/create-launcher?mode=' + encodeURIComponent(mode);
@@ -701,87 +1034,80 @@
         const data = await res.json();
         if (data.success) {
           soundBeep(1174, 0.15);
-          setStatus('✔ ' + (data.message || 'Desktop shortcut created successfully!'), '#00ff00');
+          setStatus('✔ ' + (data.message || 'Desktop shortcut created successfully!'), '#4ade80');
+          addLog('success', data.message || 'شورتکات دسکتاپ ایجاد شد');
         } else {
           soundBeep(250, 0.2);
-          setStatus('ERROR: ' + (data.message || 'Failed to create shortcut'), '#ff0055');
+          setStatus('ERROR: ' + (data.message || 'Failed to create shortcut'), '#f87171');
+          addLog('error', `خطا در ایجاد شورتکات: ${data.message}`);
         }
       } catch (err) {
         soundBeep(250, 0.2);
-        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#ff0055');
+        setStatus('ERROR: ' + (err.message || 'Communication failure'), '#f87171');
+        addLog('error', `ارور در ایجاد شورتکات: ${err.message}`);
       }
     }
 
     // Reset 429 Action
     async function actionReset() {
       soundBeep(523, 0.1);
-      setStatus('🧹 CLEANING: Clearing corrupted quota & token cache...', '#ffff00');
+      setStatus('🧹 CLEANING: Clearing corrupted quota & token cache...', '#fbbf24');
+      addLog('info', 'در حال پاکسازی کش سهمیه ۴۲۹ و کوکی‌های منقضی...');
       try {
         const res = await fetch('/api/reset', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          setStatus('🧹 FLUSHED: 429 quota tokens reset. Chats preserved.', '#00ff00');
+          setStatus('🧹 FLUSHED: 429 quota tokens reset. Chats preserved.', '#4ade80');
+          addLog('success', data.message || 'سطل سهمیه ۴۲۹ ریست شد');
         } else {
-          setStatus('ERROR: ' + (data.message || 'Reset failed'), '#ff0055');
+          setStatus('ERROR: ' + (data.message || 'Reset failed'), '#f87171');
+          addLog('error', `ریست ناموفق: ${data.message}`);
         }
       } catch (err) {
-        setStatus('ERROR: Communication failure', '#ff0055');
+        setStatus('ERROR: Communication failure', '#f87171');
+        addLog('error', `ارور ریست: ${err.message}`);
       }
     }
 
     // Restore Action
     async function actionRestore() {
       soundBeep(440, 0.15);
-      setStatus('↺ RESTORING: Restoring clean original backups...', '#ffff00');
+      setStatus('↺ RESTORING: Restoring clean original backups...', '#fbbf24');
+      addLog('info', 'در حال بازگردانی فایل‌های اصلی از بک‌آپ‌های .agybak...');
       try {
         const res = await fetch('/api/restore', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          setStatus('↺ RESTORED: Reverted to original clean backup (.agybak).', '#00ff00');
+          setStatus('↺ RESTORED: Reverted to original clean backup (.agybak).', '#4ade80');
+          addLog('success', data.message || 'فایل‌های اصلی بازگردانی شدند');
         } else {
-          setStatus('ERROR: ' + (data.message || 'Restore failed'), '#ff0055');
+          setStatus('ERROR: ' + (data.message || 'Restore failed'), '#f87171');
+          addLog('error', `بازگردانی ناموفق: ${data.message}`);
         }
       } catch (err) {
-        setStatus('ERROR: Communication failure', '#ff0055');
+        setStatus('ERROR: Communication failure', '#f87171');
+        addLog('error', `ارور بازگردانی: ${err.message}`);
       }
     }
 
     // Doctor Action
     async function actionDoctor() {
       soundBeep(784, 0.1);
-      setStatus('🩺 AUDITING: Running system & proxy diagnostics...', '#ffff00');
+      setStatus('🩺 AUDITING: Running system & proxy diagnostics...', '#fbbf24');
+      addLog('info', 'در حال اجرای تست‌های عیب‌یابی عمیق سیستم و ارتباط با گوگل...');
       try {
         const res = await fetch('/api/doctor', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          setStatus('🩺 HEALTHY: Cloud Code, DNS & Gemini APIs connected.', '#00ff00');
+          setStatus('🩺 HEALTHY: Cloud Code, DNS & Gemini APIs connected.', '#4ade80');
+          addLog('success', 'تمام سرویس‌های Cloud Code، DNS و APIهای جمینای متصل هستند.');
         } else {
-          setStatus('WARN: Issues found. Review system logs.', '#ffff00');
+          setStatus('WARN: Issues found. Review system logs.', '#fbbf24');
+          addLog('warn', 'در عیب‌یابی مواردی یافت شد؛ برای جزئیات دکمه Save Report را بزنید.');
         }
       } catch (err) {
-        setStatus('ERROR: Diagnostics error', '#ff0055');
-      }
-    }
-
-    // Report Action (Generates diagnostic report, opens text file, and copies to clipboard)
-    async function actionReport() {
-      soundBeep(880, 0.1);
-      setStatus('📋 REPORT: Generating diagnostic report...', '#00F0FF');
-      try {
-        const res = await fetch('/api/report');
-        const data = await res.json();
-        if (data.success) {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            try { await navigator.clipboard.writeText(data.message); } catch (e) {}
-          }
-          const savedPath = data.filePath || 'antigravity-report.txt';
-          setStatus('✔ OPENED: Report saved to ' + savedPath, '#00ff00');
-          alert("📄 Diagnostic Report Generated & Opened!\n\nLocation: " + savedPath + "\n\nIt has also been copied to your clipboard. You can paste (Ctrl+V) directly into Telegram or GitHub support.");
-        } else {
-          setStatus('WARN: Could not generate report', '#ffff00');
-        }
-      } catch (err) {
-        setStatus('ERROR: Report generation failed', '#ff0055');
+        setStatus('ERROR: Diagnostics error', '#f87171');
+        addLog('error', `ارور عیب‌یابی: ${err.message}`);
       }
     }
 
@@ -789,6 +1115,7 @@
     async function actionExit() {
       soundBeep(330, 0.2);
       setStatus('CLOSED: Terminating application...', '#ffffff');
+      addLog('info', 'خروج از برنامه...');
       try {
         fetch('/api/exit', { method: 'POST' });
       } catch (e) {}
@@ -796,6 +1123,13 @@
         window.close();
       }, 300);
     }
+
+    // Initial log greeting
+    window.addEventListener('DOMContentLoaded', () => {
+      addLog('info', '⚡ Antigravity Location Fixer v2.6.0 Suite Initialized.');
+      addLog('info', 'آماده خدمت: اتصال اینترنت و فایل‌های ادیتور در حال اسکن هستند.');
+      loadDetection();
+    });
   </script>
 </body>
 </html>
