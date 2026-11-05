@@ -977,20 +977,32 @@
         if (data.targets) {
           updateTargetPills(data.targets);
         }
-        if (data.success) {
+
+        const allGreen = data.targets && data.targets.ide_main_js && data.targets.extension_js && data.targets.language_server && data.targets.cli_agy;
+
+        if (allGreen) {
           soundBeep(1174, 0.18);
           setStep(2);
-          setStatus(data.message || '✔ پچ اهداف با موفقیت انجام شد! دکمه [ ② 🚀 Launch IDE ] را بزنید.', '#4ade80');
+          setStatus('✔ تمام ۴ بخش با موفقیت پچ شدند! اکنون روی [ ② 🚀 Launch IDE ] کلیک کنید و وارد اکانت شوید.', '#4ade80');
+          addLog('success', '🎉 تبریک: تمام ۴ بخش [IDE main.js]، [Extension]، [Lang Server] و [CLI] سبز و آنلاک شدند!');
+          addLog('info', '👉 لطفاً دکمه [ ② 🚀 Launch IDE ] را بزنید؛ ادیتور باز می‌شود و می‌توانید با جیمیل خود لاگین کنید.');
+        } else if (data.success) {
+          soundBeep(1174, 0.18);
+          setStep(2);
+          setStatus(data.message || '✔ پچ بخش‌های اصلی انجام شد! دکمه [ ② 🚀 Launch IDE ] را بزنید.', '#4ade80');
           addLog('success', data.message || 'پچ با موفقیت انجام شد');
+          addLog('info', '👉 روی دکمه [ ② 🚀 Launch IDE ] کلیک کنید تا ادیتور با پروکسی هوشمند باز شود.');
         } else {
           soundBeep(250, 0.2);
-          setStatus(data.message || 'خطا در عملیات پچ', '#f87171');
+          setStatus(data.message || 'خطا در عملیات پچ؛ لطفاً فایل لاگ را برای ما بفرستید', '#f87171');
           addLog('error', `پچ ناموفق: ${data.message}`);
+          addLog('warn', '💡 برای رفع سریع مشکل، روی دکمه «💾 ذخیره لاگ» یا «📋 کپی لاگ» کلیک کنید و فایل را بفرستید.');
         }
       } catch (err) {
         soundBeep(250, 0.2);
         setStatus('ERROR: ' + (err.message || 'Communication failure'), '#f87171');
         addLog('error', `قطع ارتباط با ایجنت پچر: ${err.message}`);
+        addLog('warn', '💡 دکمه «💾 ذخیره لاگ» را بزنید و گزارش را ارسال نمایید.');
       }
     }
 
@@ -1007,14 +1019,18 @@
         const res = await fetch(url, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
+          soundBeep(987, 0.15);
           setStep(3);
-          setStatus('🚀 RUNNING: Antigravity active! Optional: Click [ ③ 📌 Shortcut ]', '#38bdf8');
-          addLog('success', data.message || 'Antigravity با موفقیت اجرا گردید!');
+          setStatus('🚀 ادیتور باز شد! اکنون می‌توانید با جیمیل خود لاگین کنید. (اختیاری: دکمه ③ شورتکات)', '#38bdf8');
+          addLog('success', '🎉 ادیتور Antigravity IDE با موفقیت باز شد! می‌توانید به راحتی لاگین کنید.');
         } else {
-          setStatus('ERROR: ' + (data.message || 'Launch failed'), '#f87171');
+          soundBeep(250, 0.2);
+          setStatus('❌ ' + (data.message || 'Launch failed'), '#f87171');
           addLog('error', `اجرای ناموفق: ${data.message}`);
+          addLog('warn', '💡 در صورت باز نشدن، دکمه «💾 ذخیره لاگ (Export)» را بزنید و فایل report را برای ما ارسال کنید.');
         }
       } catch (err) {
+        soundBeep(250, 0.2);
         setStatus('ERROR: ' + (err.message || 'Communication failure'), '#f87171');
         addLog('error', `ارور در باز کردن ادیتور: ${err.message}`);
       }
