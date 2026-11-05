@@ -40,6 +40,33 @@ func TestBuildProxyEnv(t *testing.T) {
 	}
 }
 
+func TestDirectConnectivityAndVpnDetection(t *testing.T) {
+	// 1. HasActiveVpnInterface should execute safely without crashing
+	vpnActive := HasActiveVpnInterface()
+	t.Logf("HasActiveVpnInterface returned: %v", vpnActive)
+
+	// 2. DirectEndpoint definition check
+	if DirectEndpoint.Type != "direct" || DirectEndpoint.URL != "direct://" {
+		t.Errorf("DirectEndpoint invalid: %+v", DirectEndpoint)
+	}
+
+	// 3. CheckDirectConnectivity execution
+	// Should execute with timeout without panicking
+	reachable := CheckDirectConnectivity(800 * 1000 * 1000) // 800ms
+	t.Logf("CheckDirectConnectivity reachable: %v", reachable)
+
+	// 4. GetBestProxy returns a valid endpoint if reachable/VPN or local proxy
+	best, err := GetBestProxy()
+	if err == nil {
+		t.Logf("GetBestProxy discovered: %+v", best)
+		if best.URL == "" {
+			t.Errorf("GetBestProxy returned empty URL")
+		}
+	} else {
+		t.Logf("GetBestProxy returned error (no proxy or direct connectivity): %v", err)
+	}
+}
+
 func BenchmarkCleanHostPort(b *testing.B) {
 	input := "socks5h://127.0.0.1:10808"
 	b.ResetTimer()

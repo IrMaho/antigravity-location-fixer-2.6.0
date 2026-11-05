@@ -50,6 +50,8 @@ type DetectResponse struct {
 	Path           string `json:"path"`
 	Detected       bool   `json:"detected"`
 	Proxy          string `json:"proxy"`
+	Mode           string `json:"mode"`
+	VpnActive      bool   `json:"vpn_active"`
 	OS             string `json:"os"`
 	Arch           string `json:"arch"`
 	WrapperActive  bool   `json:"wrapper_active"`
@@ -131,6 +133,32 @@ func fileExists(p string) bool {
 	return err == nil && !fi.IsDir()
 }
 
+// resolveProxyForMode resolves the proxy URL and friendly description based on selected network mode.
+// Mode can be: "auto", "direct" / "system_vpn", or "proxy" / "local_proxy".
+func resolveProxyForMode(mode string) (string, string) {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "direct", "system_vpn", "vpn":
+		return "direct://", "Direct / System VPN (Surfshark/WireGuard)"
+	case "proxy", "local_proxy":
+		active := proxy.DetectActiveProxies()
+		if len(active) > 0 {
+			for _, p := range active {
+				if p.Type == "socks5" || p.Type == "mixed" {
+					return p.URL, fmt.Sprintf("%s (%s)", p.URL, p.Provider)
+				}
+			}
+			return active[0].URL, fmt.Sprintf("%s (%s)", active[0].URL, active[0].Provider)
+		}
+		return "", "No active proxy on 127.0.0.1"
+	default: // "auto"
+		best, err := proxy.GetBestProxy()
+		if err == nil {
+			return best.URL, fmt.Sprintf("%s (%s)", best.URL, best.Provider)
+		}
+		return "direct://", "Direct socket (no proxy active)"
+	}
+}
+
 func (s *Server) handleDetect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
@@ -175,10 +203,12 @@ func (s *Server) handleDetect(w http.ResponseWriter, r *http.Request) {
 
 	detected := targetPath != ""
 
-	proxyDesc := "Direct socket (no proxy active)"
-	if best, err := proxy.GetBestProxy(); err == nil {
-		proxyDesc = fmt.Sprintf("%s (%s)", best.URL, best.Provider)
+	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
+	if mode == "" {
+		mode = "auto"
 	}
+	vpnActive := proxy.HasActiveVpnInterface() || proxy.CheckDirectConnectivity(800*time.Millisecond)
+	_, proxyDesc := resolveProxyForMode(mode)
 
 	runningPID := patcher.FindRunningLanguageServerPID()
 	wrapperActive := false
@@ -193,6 +223,8 @@ func (s *Server) handleDetect(w http.ResponseWriter, r *http.Request) {
 		Path:           targetPath,
 		Detected:       detected,
 		Proxy:          proxyDesc,
+		Mode:           mode,
+		VpnActive:      vpnActive,
 		OS:             runtime.GOOS,
 		Arch:           runtime.GOARCH,
 		WrapperActive:  wrapperActive,
@@ -210,14 +242,26 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
-	if customPath == "" {
+	if customPath == "" || mode == "" {
 		var reqBody struct {
 			Path string `json:"path"`
+			Mode string `json:"mode"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&reqBody)
-		customPath = strings.TrimSpace(reqBody.Path)
+		if customPath == "" {
+			customPath = strings.TrimSpace(reqBody.Path)
+		}
+		if mode == "" {
+			mode = strings.TrimSpace(reqBody.Mode)
+		}
 	}
+	if mode == "" {
+		mode = "auto"
+	}
+
+	proxyURL, _ := resolveProxyForMode(mode)
 
 	_, _ = patcher.KillAntigravityProcesses()
 
@@ -300,7 +344,7 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 	_, _ = cleaner.SurgicalReset429("", false)
 
 	// Target 7: Desktop shortcut
-	_, _ = proxy.GenerateNoTunDesktopLauncherCustom(customPath, "")
+	_, _ = proxy.GenerateNoTunDesktopLauncherCustom(customPath, proxyURL)
 
 	// Check if any core target succeeded
 	success := len(patchedDetails) > 0
@@ -328,11 +372,32 @@ func (s *Server) handleLaunch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
+	if customPath == "" || mode == "" {
+		var reqBody struct {
+			Path string `json:"path"`
+			Mode string `json:"mode"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&reqBody)
+		if customPath == "" {
+			customPath = strings.TrimSpace(reqBody.Path)
+		}
+		if mode == "" {
+			mode = strings.TrimSpace(reqBody.Mode)
+		}
+	}
+	if mode == "" {
+		mode = "auto"
+	}
 
-	var proxyURL string
-	if best, err := proxy.GetBestProxy(); err == nil {
-		proxyURL = best.URL
+	proxyURL, _ := resolveProxyForMode(mode)
+	if proxyURL == "" && strings.ToLower(mode) == "proxy" {
+		_ = json.NewEncoder(w).Encode(Response{
+			Success: false,
+			Message: "ERROR: no active proxy detected on 127.0.0.1 (please start your proxy client)",
+		})
+		return
 	}
 
 	err := proxy.LaunchAntigravityWithProxy(customPath, proxyURL, nil)
@@ -357,8 +422,27 @@ func (s *Server) handleCreateLauncher(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
-	path, err := proxy.GenerateNoTunDesktopLauncherCustom(customPath, "")
+	if customPath == "" || mode == "" {
+		var reqBody struct {
+			Path string `json:"path"`
+			Mode string `json:"mode"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&reqBody)
+		if customPath == "" {
+			customPath = strings.TrimSpace(reqBody.Path)
+		}
+		if mode == "" {
+			mode = strings.TrimSpace(reqBody.Mode)
+		}
+	}
+	if mode == "" {
+		mode = "auto"
+	}
+
+	proxyURL, _ := resolveProxyForMode(mode)
+	path, err := proxy.GenerateNoTunDesktopLauncherCustom(customPath, proxyURL)
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(Response{
 			Success: false,

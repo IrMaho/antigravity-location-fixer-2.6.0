@@ -149,8 +149,60 @@ func FindAntigravityExecutable() string {
 	return targets[0].ExePath
 }
 
+// BuildDirectEnv strips all proxy environment variables while preserving and injecting
+// SSH_CONNECTION and SSH_CLIENT (crucial for language server remote file-token mode).
+func BuildDirectEnv(baseEnv []string) []string {
+	if baseEnv == nil {
+		baseEnv = os.Environ()
+	}
+
+	proxyKeys := map[string]bool{
+		"HTTP_PROXY":  true,
+		"HTTPS_PROXY": true,
+		"ALL_PROXY":   true,
+		"GRPC_PROXY":  true,
+		"NO_PROXY":    true,
+	}
+
+	leakKeys := map[string]bool{
+		"JETSKI_OAUTH_TOKEN":             true,
+		"JETSKI_TEST_GAIA_TOKEN":        true,
+		"GEMINI_API_KEY":                true,
+		"GOOGLE_API_KEY":                true,
+		"GOOGLE_APPLICATION_CREDENTIALS": true,
+	}
+
+	var cleanEnv []string
+	for _, e := range baseEnv {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) > 0 {
+			key := parts[0]
+			keyUpper := strings.ToUpper(key)
+			if proxyKeys[keyUpper] || leakKeys[key] || leakKeys[keyUpper] {
+				continue
+			}
+			if keyUpper == "SSH_CONNECTION" || keyUpper == "SSH_CLIENT" {
+				continue
+			}
+		}
+		cleanEnv = append(cleanEnv, e)
+	}
+
+	// Always inject SSH_CONNECTION and SSH_CLIENT to enable language_server file-token mode
+	cleanEnv = append(cleanEnv,
+		"SSH_CONNECTION=127.0.0.1 1234 127.0.0.1 22",
+		"SSH_CLIENT=127.0.0.1 1234 22",
+	)
+
+	return cleanEnv
+}
+
 // BuildProxyEnv constructs clean proxy environment variables for child processes
 func BuildProxyEnv(proxyURL string) []string {
+	if proxyURL == "direct://" || proxyURL == "direct" {
+		return BuildDirectEnv(nil)
+	}
+
 	env := os.Environ()
 
 	var httpProxy string
@@ -220,6 +272,29 @@ func CleanChromiumProxyURL(proxyURL string) string {
 	return strings.Replace(proxyURL, "socks5h://", "socks5://", 1)
 }
 
+// launchElevatedWindows launches appPath with elevated privileges using PowerShell Start-Process -Verb RunAs
+// when a standard launch fails with Error 740 (The requested operation requires elevation).
+func launchElevatedWindows(appPath string, args []string, env []string) error {
+	var escapedArgs []string
+	for _, a := range args {
+		escaped := strings.ReplaceAll(a, "'", "''")
+		escapedArgs = append(escapedArgs, fmt.Sprintf("'%s'", escaped))
+	}
+	argList := strings.Join(escapedArgs, ", ")
+
+	psCommand := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList @(%s) -Verb RunAs",
+		strings.ReplaceAll(appPath, "'", "''"), argList)
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCommand)
+	if env != nil {
+		cmd.Env = env
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("elevation fallback failed: %w", err)
+	}
+	return nil
+}
+
 // LaunchAntigravityWithProxy launches Antigravity with injected proxy variables (No TUN needed)
 func LaunchAntigravityWithProxy(appPath string, proxyURL string, extraArgs []string) error {
 	if appPath != "" {
@@ -260,17 +335,26 @@ func LaunchAntigravityWithProxy(appPath string, proxyURL string, extraArgs []str
 		proxyURL = best.URL
 	}
 
-	chromiumProxy := CleanChromiumProxyURL(proxyURL)
+	isDirect := proxyURL == "direct://" || proxyURL == "direct"
 
-	// Build arguments: pass --proxy-server to Chromium/Electron without quotes
-	args := []string{
-		fmt.Sprintf("--proxy-server=%s", chromiumProxy),
+	// Build arguments: pass --proxy-server only when a real proxy is configured
+	var args []string
+	if !isDirect {
+		chromiumProxy := CleanChromiumProxyURL(proxyURL)
+		args = append(args, fmt.Sprintf("--proxy-server=%s", chromiumProxy))
 	}
 	args = append(args, extraArgs...)
 
+	var env []string
+	if isDirect {
+		env = BuildDirectEnv(nil)
+	} else {
+		env = BuildProxyEnv(proxyURL)
+	}
+
 	cmd := exec.Command(appPath, args...)
 	cmd.Dir = filepath.Dir(appPath)
-	cmd.Env = BuildProxyEnv(proxyURL)
+	cmd.Env = env
 	// Detach stdio pipes to prevent broken-pipe write EIO crashes when parent terminal closes
 	cmd.Stdout = nil
 	cmd.Stderr = nil
@@ -280,6 +364,13 @@ func LaunchAntigravityWithProxy(appPath string, proxyURL string, extraArgs []str
 	_ = account.SyncTokenBridge(nil)
 
 	if err := cmd.Start(); err != nil {
+		// Windows Elevation Fallback (Error 740 / "The requested operation requires elevation")
+		errMsg := strings.ToLower(err.Error())
+		if runtime.GOOS == "windows" && (strings.Contains(errMsg, "requires elevation") || strings.Contains(errMsg, "740")) {
+			if elevErr := launchElevatedWindows(appPath, args, env); elevErr == nil {
+				return nil
+			}
+		}
 		return fmt.Errorf("failed to start Antigravity with proxy: %w", err)
 	}
 
@@ -371,7 +462,31 @@ func GenerateNoTunDesktopLauncherCustom(customPath, proxyURL string) (string, er
 
 		// 1. Create Smart Launcher script in ~/.local/bin/antigravity-smart-launcher.sh
 		smartLauncherScript := filepath.Join(binDir, "antigravity-smart-launcher.sh")
-		scriptContent := fmt.Sprintf(`#!/usr/bin/env bash
+		isDirect := proxyURL == "direct://" || proxyURL == "direct"
+		var scriptContent string
+		if isDirect {
+			scriptContent = fmt.Sprintf(`#!/usr/bin/env bash
+# Direct / System VPN Launcher for Google Antigravity
+APP_PATH="%s"
+
+# 1. Clean stale singleton locks from ungraceful exits or display disconnects
+LOCK_FILE="$HOME/.config/Antigravity/SingletonLock"
+if [ -L "$LOCK_FILE" ]; then
+    LOCK_TARGET=$(readlink "$LOCK_FILE" 2>/dev/null)
+    LOCK_PID="${LOCK_TARGET##*-}"
+    if [ -n "$LOCK_PID" ] && ! kill -0 "$LOCK_PID" 2>/dev/null; then
+        rm -f "$LOCK_FILE" "$HOME/.config/Antigravity/SingletonSocket" "$HOME/.config/Antigravity/SingletonCookie" 2>/dev/null
+    fi
+fi
+
+unset ALL_PROXY all_proxy HTTPS_PROXY https_proxy HTTP_PROXY http_proxy GRPC_PROXY grpc_proxy
+export SSH_CONNECTION="127.0.0.1 1234 127.0.0.1 22"
+export SSH_CLIENT="127.0.0.1 1234 22"
+
+exec "$APP_PATH" "$@" >/dev/null 2>&1
+`, appPath)
+		} else {
+			scriptContent = fmt.Sprintf(`#!/usr/bin/env bash
 # Smart Proxy Launcher for Google Antigravity
 # Auto-detects running proxy (v2ray, NekoBox, Clash, Hiddify) and launches Antigravity
 
@@ -423,6 +538,7 @@ export SSH_CLIENT="127.0.0.1 1234 22"
 # Redirect stdout/stderr to /dev/null to prevent electron-log write EIO broken-pipe popups
 exec "$APP_PATH" --proxy-server="${PROXY_TYPE}://127.0.0.1:${ACTIVE_PORT}" "$@" >/dev/null 2>&1
 `, appPath)
+		}
 
 		_ = os.WriteFile(smartLauncherScript, []byte(scriptContent), 0755)
 
@@ -491,7 +607,27 @@ StartupWMClass=antigravity
 
 	if runtime.GOOS == "darwin" {
 		cmdPath := filepath.Join(home, "Desktop", "Antigravity-Proxy.command")
-		content := fmt.Sprintf(`#!/usr/bin/env bash
+		isDirect := proxyURL == "direct://" || proxyURL == "direct"
+		var content string
+		if isDirect {
+			content = fmt.Sprintf(`#!/usr/bin/env bash
+# macOS Direct / System VPN Launcher for Google Antigravity
+APP_PATH="%s"
+if [ ! -f "$APP_PATH" ]; then
+    APP_PATH="/Applications/Antigravity.app/Contents/MacOS/Antigravity"
+fi
+if [ ! -f "$APP_PATH" ]; then
+    APP_PATH="/Applications/Antigravity.app/Contents/MacOS/Electron"
+fi
+
+unset ALL_PROXY all_proxy HTTPS_PROXY https_proxy HTTP_PROXY http_proxy GRPC_PROXY grpc_proxy
+export SSH_CONNECTION="127.0.0.1 1234 127.0.0.1 22"
+export SSH_CLIENT="127.0.0.1 1234 22"
+
+exec "$APP_PATH" "$@"
+`, appPath)
+		} else {
+			content = fmt.Sprintf(`#!/usr/bin/env bash
 # macOS Smart Proxy Launcher for Google Antigravity
 APP_PATH="%s"
 if [ ! -f "$APP_PATH" ]; then
@@ -522,6 +658,7 @@ export SSH_CLIENT="127.0.0.1 1234 22"
 
 exec "$APP_PATH" --proxy-server="socks5://127.0.0.1:${ACTIVE_PORT}" "$@"
 `, appPath)
+		}
 
 		if err := os.WriteFile(cmdPath, []byte(content), 0755); err != nil {
 			return "", err
@@ -564,7 +701,24 @@ exec "$APP_PATH" --proxy-server="socks5://127.0.0.1:${ACTIVE_PORT}" "$@"
 // GenerateWindowsLauncherBatch generates the contents of the Windows batch launcher wrapper.
 // It exports ALL_PROXY, HTTPS_PROXY, HTTP_PROXY, SSH_CONNECTION, and SSH_CLIENT so that
 // child processes (like agy.exe) inherit proxy configurations and remote file-token mode.
+// In direct/VPN mode, it cleans proxy variables and omits --proxy-server.
 func GenerateWindowsLauncherBatch(appPath, proxyURL string) string {
+	if proxyURL == "direct://" || proxyURL == "direct" {
+		return fmt.Sprintf(`@echo off
+set "ALL_PROXY="
+set "all_proxy="
+set "HTTPS_PROXY="
+set "https_proxy="
+set "HTTP_PROXY="
+set "http_proxy="
+set "GRPC_PROXY="
+set "grpc_proxy="
+set "SSH_CONNECTION=127.0.0.1 1234 127.0.0.1 22"
+set "SSH_CLIENT=127.0.0.1 1234 22"
+start "" "%s" %%*
+`, appPath)
+	}
+
 	chromiumProxy := CleanChromiumProxyURL(proxyURL)
 	socksProxy := proxyURL
 	if strings.HasPrefix(proxyURL, "socks") && !strings.HasPrefix(proxyURL, "socks5h://") && strings.HasPrefix(proxyURL, "socks5://") {
@@ -573,6 +727,14 @@ func GenerateWindowsLauncherBatch(appPath, proxyURL string) string {
 	httpProxy := proxyURL
 	if strings.HasPrefix(proxyURL, "socks") {
 		httpProxy = socksProxy
+	}
+
+	cleanChromium := strings.ReplaceAll(chromiumProxy, `"`, ``)
+	var proxyArg string
+	if strings.ContainsAny(cleanChromium, "&<>()^") {
+		proxyArg = fmt.Sprintf(`"--proxy-server=%s"`, cleanChromium)
+	} else {
+		proxyArg = fmt.Sprintf(`--proxy-server=%s`, cleanChromium)
 	}
 
 	return fmt.Sprintf(`@echo off
@@ -586,12 +748,35 @@ set "GRPC_PROXY=%s"
 set "grpc_proxy=%s"
 set "SSH_CONNECTION=127.0.0.1 1234 127.0.0.1 22"
 set "SSH_CLIENT=127.0.0.1 1234 22"
-start "" "%s" --proxy-server=%s %%*
-`, socksProxy, socksProxy, httpProxy, httpProxy, httpProxy, httpProxy, httpProxy, httpProxy, appPath, chromiumProxy)
+start "" "%s" %s %%*
+`, socksProxy, socksProxy, httpProxy, httpProxy, httpProxy, httpProxy, httpProxy, httpProxy, appPath, proxyArg)
 }
 
 // GenerateWindowsLauncherPowerShell generates the contents of a PowerShell launcher wrapper.
+// In direct/VPN mode, it unsets proxy environment variables and omits --proxy-server.
+// Includes automatic elevation fallback (-Verb RunAs) if Error 740 occurs.
 func GenerateWindowsLauncherPowerShell(appPath, proxyURL string) string {
+	if proxyURL == "direct://" || proxyURL == "direct" {
+		return fmt.Sprintf(`# Direct / System VPN Launcher for Google Antigravity
+Remove-Item Env:ALL_PROXY -ErrorAction SilentlyContinue
+Remove-Item Env:all_proxy -ErrorAction SilentlyContinue
+Remove-Item Env:HTTPS_PROXY -ErrorAction SilentlyContinue
+Remove-Item Env:https_proxy -ErrorAction SilentlyContinue
+Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue
+Remove-Item Env:http_proxy -ErrorAction SilentlyContinue
+Remove-Item Env:GRPC_PROXY -ErrorAction SilentlyContinue
+Remove-Item Env:grpc_proxy -ErrorAction SilentlyContinue
+$env:SSH_CONNECTION = "127.0.0.1 1234 127.0.0.1 22"
+$env:SSH_CLIENT = "127.0.0.1 1234 22"
+$appArgs = $args
+try {
+    Start-Process -FilePath "%s" -ArgumentList $appArgs -WorkingDirectory "%s"
+} catch {
+    Start-Process -FilePath "%s" -ArgumentList $appArgs -WorkingDirectory "%s" -Verb RunAs
+}
+`, appPath, filepath.Dir(appPath), appPath, filepath.Dir(appPath))
+	}
+
 	chromiumProxy := CleanChromiumProxyURL(proxyURL)
 	socksProxy := proxyURL
 	if strings.HasPrefix(proxyURL, "socks") && !strings.HasPrefix(proxyURL, "socks5h://") && strings.HasPrefix(proxyURL, "socks5://") {
@@ -602,20 +787,28 @@ func GenerateWindowsLauncherPowerShell(appPath, proxyURL string) string {
 		httpProxy = socksProxy
 	}
 
+	escapePs := func(s string) string {
+		return strings.ReplaceAll(s, "'", "''")
+	}
+
 	return fmt.Sprintf(`# Smart Proxy Launcher for Google Antigravity
-$env:ALL_PROXY = "%s"
-$env:all_proxy = "%s"
-$env:HTTPS_PROXY = "%s"
-$env:https_proxy = "%s"
-$env:HTTP_PROXY = "%s"
-$env:http_proxy = "%s"
-$env:GRPC_PROXY = "%s"
-$env:grpc_proxy = "%s"
+$env:ALL_PROXY = '%s'
+$env:all_proxy = '%s'
+$env:HTTPS_PROXY = '%s'
+$env:https_proxy = '%s'
+$env:HTTP_PROXY = '%s'
+$env:http_proxy = '%s'
+$env:GRPC_PROXY = '%s'
+$env:grpc_proxy = '%s'
 $env:SSH_CONNECTION = "127.0.0.1 1234 127.0.0.1 22"
 $env:SSH_CLIENT = "127.0.0.1 1234 22"
 $appArgs = @("--proxy-server=%s") + $args
-Start-Process -FilePath "%s" -ArgumentList $appArgs -WorkingDirectory "%s"
-`, socksProxy, socksProxy, httpProxy, httpProxy, httpProxy, httpProxy, httpProxy, httpProxy, chromiumProxy, appPath, filepath.Dir(appPath))
+try {
+    Start-Process -FilePath "%s" -ArgumentList $appArgs -WorkingDirectory "%s"
+} catch {
+    Start-Process -FilePath "%s" -ArgumentList $appArgs -WorkingDirectory "%s" -Verb RunAs
+}
+`, escapePs(socksProxy), escapePs(socksProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(chromiumProxy), appPath, filepath.Dir(appPath), appPath, filepath.Dir(appPath))
 }
 
 // CreateDesktopShortcutWindows creates a native Windows desktop shortcut and companion launcher wrappers

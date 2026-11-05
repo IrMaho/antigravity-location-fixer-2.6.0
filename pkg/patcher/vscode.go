@@ -17,7 +17,10 @@ var (
 
 	// downloadGuardTarget matches unminified and minified outputChannel.appendLine logging lines
 	downloadGuardTarget = regexp.MustCompile(`((?:outputChannel|[a-zA-Z0-9_$]+)\.appendLine\(\s*['"]\[INSTALL\]\s*Checking Antigravity releases\.\.\.['"]\s*\);)`)
-	downloadGuardCode   = `{const __fs=typeof require==='function'?require('fs'):null;const __path=typeof require==='function'?require('path'):null;const __logger=(typeof outputChannel!=='undefined'?outputChannel:(typeof g!=='undefined'?g:null));const __primary=(typeof options!=='undefined'&&options.targetPathOverride)||(typeof getInstalledTargetPath==='function'&&getInstalledTargetPath())||(typeof B!=='undefined'?B:(typeof Ub==='function'&&Ub()));if(__fs&&__path&&__primary){const __candidates=[__primary,__path.join(__path.dirname(__primary),'antigravity'+(__path.extname(__primary)||''))];for(const __p of __candidates){if(__p&&__fs.existsSync(__p)){if(__logger&&__logger.appendLine){__logger.appendLine('[INSTALL] Existing binary found at '+__p+'. Skipping version check and re-download.');}return __p;}}}}`
+	downloadGuardCode   = `{const __fs=typeof require==='function'?require('fs'):null;const __path=typeof require==='function'?require('path'):null;const __logger=(typeof outputChannel!=='undefined'?outputChannel:(typeof g!=='undefined'?g:null));const __primary=(typeof options!=='undefined'&&options.targetPathOverride)||(typeof getInstalledTargetPath==='function'&&getInstalledTargetPath())||(typeof B!=='undefined'?B:(typeof Ub==='function'&&Ub()));if(__fs&&__path&&__primary){const __candidates=[__primary,__path.join(__path.dirname(__primary),'antigravity'+(__path.extname(__primary)||''))];for(const __p of __candidates){if(__p&&__fs.existsSync(__p)){if(__logger&&__logger.appendLine){__logger.appendLine('[INSTALL] Existing binary found at '+__p+'. Skipping version check and re-download.');}return {installPath:__p,fellBackToExisting:false};}}}}`
+
+	// legacyBrokenReturnRe matches earlier v2.6.0 patch return __p; inside extension.js
+	legacyBrokenReturnRe = regexp.MustCompile(`(Skipping version check and re-download\.\'\);\s*\}\s*)return\s+__p\s*;`)
 )
 
 // FindVsCodeExtension finds the extension.js of google.google-antigravity
@@ -32,8 +35,33 @@ func FindVsCodeExtension() string {
 		filepath.Join(home, ".antigravity", "extensions"),
 	}
 
+	// Dynamic candidate discovery from running Antigravity IDE process (Scenario A & B)
+	if runningApp := FindRunningAntigravityApp(nil); runningApp != "" {
+		appDir := filepath.Dir(runningApp)
+		candidateDirs = append(candidateDirs,
+			filepath.Join(appDir, "resources", "app", "extensions"),
+			filepath.Join(filepath.Dir(appDir), "resources", "app", "extensions"),
+		)
+	}
+
+	// Dynamic candidate discovery from running Language Server
+	if runningLs := FindRunningLanguageServer(nil); runningLs != "" {
+		lsDir := filepath.Dir(runningLs)
+		candidateDirs = append(candidateDirs,
+			filepath.Join(lsDir, "resources", "app", "extensions"),
+			filepath.Join(filepath.Dir(lsDir), "resources", "app", "extensions"),
+			filepath.Join(filepath.Dir(filepath.Dir(lsDir)), "resources", "app", "extensions"),
+		)
+	}
+
 	if runtime.GOOS == "windows" {
 		localApp := os.Getenv("LOCALAPPDATA")
+		userProfile := os.Getenv("USERPROFILE")
+		if userProfile == "" {
+			userProfile = home
+		}
+		desktop := filepath.Join(userProfile, "Desktop")
+		downloads := filepath.Join(userProfile, "Downloads")
 		candidateDirs = append(candidateDirs,
 			filepath.Join(localApp, "Programs", "Antigravity IDE", "resources", "app", "extensions"),
 			filepath.Join(home, "AppData", "Local", "Programs", "Antigravity IDE", "resources", "app", "extensions"),
@@ -42,6 +70,20 @@ func FindVsCodeExtension() string {
 			filepath.Join(localApp, "Programs", "antigravity", "resources", "app", "extensions"),
 			filepath.Join(home, "AppData", "Local", "Programs", "antigravity", "resources", "app", "extensions"),
 		)
+
+		for _, parent := range []string{desktop, downloads} {
+			if parent != "" {
+				if entries, err := os.ReadDir(parent); err == nil {
+					for _, e := range entries {
+						if e.IsDir() && strings.Contains(strings.ToLower(e.Name()), "antigravity") {
+							candidateDirs = append(candidateDirs,
+								filepath.Join(parent, e.Name(), "resources", "app", "extensions"),
+							)
+						}
+					}
+				}
+			}
+		}
 	} else if runtime.GOOS == "linux" {
 		candidateDirs = append(candidateDirs,
 			"/usr/share/antigravity/resources/app/extensions",
@@ -112,8 +154,22 @@ func PatchVsCodeExtension(extPath string) (string, error) {
 	}
 
 	content := string(data)
+
+	// Self-healing: if extension was patched with legacy broken return __p;, repair it in-place!
+	if legacyBrokenReturnRe.MatchString(content) {
+		healed := legacyBrokenReturnRe.ReplaceAllString(content, `${1}return {installPath:__p,fellBackToExisting:false};`)
+		if _, err := BackupFile(extPath); err != nil {
+			return "", fmt.Errorf("backup failed: %w", err)
+		}
+		if err := AtomicWrite(extPath, []byte(healed)); err != nil {
+			return "", fmt.Errorf("failed to write self-healed extension.js: %w", err)
+		}
+		return fmt.Sprintf("Self-healed VS Code extension %s (repaired IDE view return object)", filepath.Base(filepath.Dir(extPath))), nil
+	}
+
 	isAlreadyPatched := (strings.Contains(content, channelPatched) || strings.Contains(content, channelPatchedMin) || strings.Contains(content, "let Pc=false")) &&
-		strings.Contains(content, "Skipping version check and re-download")
+		strings.Contains(content, "Skipping version check and re-download") &&
+		strings.Contains(content, "installPath:__p")
 	if isAlreadyPatched {
 		return fmt.Sprintf("Already patched: %s", filepath.Base(filepath.Dir(extPath))), nil
 	}

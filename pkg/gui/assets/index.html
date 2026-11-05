@@ -311,6 +311,22 @@
         </div>
       </div>
 
+      <!-- Network & Proxy Mode Selector Section -->
+      <div class="field-group">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <label class="field-label">Network / Proxy Mode:</label>
+          <span id="proxyBadge" style="color:#000080; font-weight:bold; font-size:9.5px;">🌐 Auto Detect</span>
+        </div>
+        <div style="display:flex; gap:3px;">
+          <select id="modeSelect" class="field-input" style="flex:1; background:#ffffff; color:#000080; cursor:pointer;" onchange="onNetworkModeChanged()">
+            <option value="auto" selected>⚡ Auto Detect (Auto-discover Proxy or System VPN / Direct)</option>
+            <option value="direct">🛡️ System VPN / Direct (Surfshark, WireGuard, OpenVPN, Direct)</option>
+            <option value="proxy">🔌 Local Proxy (127.0.0.1: v2rayN, NekoBox, Clash, Hiddify)</option>
+          </select>
+          <button class="win95-btn" onclick="refreshNetworkStatus()" style="width:65px; height:22px; font-size:10px; padding:0 3px;" title="بررسی مجدد اتصال و وضعیت شبکه">🔄 Check</button>
+        </div>
+      </div>
+
       <!-- Step-by-Step Guidance / Status Output Box -->
       <div class="field-group">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -323,6 +339,7 @@
       <!-- Clean Consolidated System & Privacy Status Panel -->
       <div class="info-panel">
         <span id="archBadge">⚙️ Windows / x86_64</span>
+        <span id="netStatusBadge" style="color:#006600; font-size:9.5px; font-weight:bold;">🌐 NET: OK</span>
         <label style="cursor:pointer; display:flex; align-items:center; gap:4px; color:#005500; font-weight:bold; user-select:none;">
           <input type="checkbox" id="chkPrivacy" onchange="actionTogglePrivacy()"> 🛡️ Zero-Telemetry
         </label>
@@ -507,15 +524,61 @@
       }
     }
 
+    function getNetworkMode() {
+      const sel = document.getElementById('modeSelect');
+      return sel ? sel.value : 'auto';
+    }
+
+    function onNetworkModeChanged() {
+      soundBeep(600, 0.06);
+      loadDetection(getCurrentPath());
+    }
+
+    function refreshNetworkStatus() {
+      soundBeep(700, 0.08);
+      setStatus('🌐 NETWORK: Testing connection & proxy...', '#00ffea');
+      loadDetection(getCurrentPath());
+    }
+
     // Auto-Detect on Load or Custom Path
     async function loadDetection(customPath = '') {
       try {
-        const targetUrl = customPath ? '/api/detect?path=' + encodeURIComponent(customPath) : '/api/detect';
+        const mode = getNetworkMode();
+        let targetUrl = '/api/detect?mode=' + encodeURIComponent(mode);
+        if (customPath) {
+          targetUrl += '&path=' + encodeURIComponent(customPath);
+        }
         const res = await fetch(targetUrl);
         const data = await res.json();
         targetApp.value = data.app || 'Google Antigravity 2.x';
         if (data.path) {
           pathInput.value = data.path;
+        }
+
+        const proxyBadge = document.getElementById('proxyBadge');
+        if (proxyBadge) {
+          proxyBadge.innerText = '🌐 ' + (data.proxy || 'Direct');
+          if (data.proxy && data.proxy.includes('No active')) {
+            proxyBadge.style.color = '#c00000';
+          } else if (data.vpn_active || (data.proxy && data.proxy.includes('Direct'))) {
+            proxyBadge.style.color = '#008000';
+          } else {
+            proxyBadge.style.color = '#000080';
+          }
+        }
+
+        const netStatusBadge = document.getElementById('netStatusBadge');
+        if (netStatusBadge) {
+          if (data.vpn_active) {
+            netStatusBadge.innerText = '🛡️ VPN: ACTIVE';
+            netStatusBadge.style.color = '#006600';
+          } else if (data.proxy && !data.proxy.includes('No active') && !data.proxy.includes('Direct')) {
+            netStatusBadge.innerText = '🔌 PROXY: ACTIVE';
+            netStatusBadge.style.color = '#000080';
+          } else {
+            netStatusBadge.innerText = '🌐 DIRECT: ONLINE';
+            netStatusBadge.style.color = '#006600';
+          }
         }
 
         const archBadge = document.getElementById('archBadge');
@@ -585,7 +648,9 @@
       soundBeep(880, 0.12);
       setStatus('STEP 1/3: در حال پچ اهداف و ریست سهمیه کووتا...', '#ffff00');
       const p = getCurrentPath();
-      const url = p ? '/api/patch?path=' + encodeURIComponent(p) : '/api/patch';
+      const mode = getNetworkMode();
+      let url = '/api/patch?mode=' + encodeURIComponent(mode);
+      if (p) url += '&path=' + encodeURIComponent(p);
       try {
         const res = await fetch(url, { method: 'POST' });
         const data = await res.json();
@@ -606,7 +671,9 @@
       soundBeep(659, 0.1);
       setStatus('🚀 LAUNCHING: Spawning Antigravity with smart proxy...', '#00ffea');
       const p = getCurrentPath();
-      const url = p ? '/api/launch?path=' + encodeURIComponent(p) : '/api/launch';
+      const mode = getNetworkMode();
+      let url = '/api/launch?mode=' + encodeURIComponent(mode);
+      if (p) url += '&path=' + encodeURIComponent(p);
       try {
         const res = await fetch(url, { method: 'POST' });
         const data = await res.json();
@@ -626,7 +693,9 @@
       soundBeep(523, 0.1);
       setStatus('🛠️ SHORTCUT: Generating Smart Desktop Launcher...', '#00f0ff');
       const p = getCurrentPath();
-      const url = p ? '/api/create-launcher?path=' + encodeURIComponent(p) : '/api/create-launcher';
+      const mode = getNetworkMode();
+      let url = '/api/create-launcher?mode=' + encodeURIComponent(mode);
+      if (p) url += '&path=' + encodeURIComponent(p);
       try {
         const res = await fetch(url, { method: 'POST' });
         const data = await res.json();

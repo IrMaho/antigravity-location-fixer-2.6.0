@@ -44,9 +44,15 @@ func TestGuiServerAndEndpoints(t *testing.T) {
 	if !strings.Contains(bodyStr, "Antigravity Location Fixer") {
 		t.Errorf("Expected embedded HTML to contain Antigravity Location Fixer title")
 	}
+	if !strings.Contains(bodyStr, "modeSelect") {
+		t.Errorf("Expected embedded HTML to contain modeSelect dropdown")
+	}
+	if !strings.Contains(bodyStr, "Network / Proxy Mode") {
+		t.Errorf("Expected embedded HTML to contain Network / Proxy Mode label")
+	}
 
-	// Test 2: /api/detect endpoint
-	detectResp, err := client.Get(server.URL() + "api/detect")
+	// Test 2: /api/detect endpoint with auto mode
+	detectResp, err := client.Get(server.URL() + "api/detect?mode=auto")
 	if err != nil {
 		t.Fatalf("Failed to GET /api/detect: %v", err)
 	}
@@ -69,6 +75,24 @@ func TestGuiServerAndEndpoints(t *testing.T) {
 	}
 	if dResp.Arch == "" {
 		t.Errorf("Expected non-empty Arch in detect response")
+	}
+	if dResp.Mode != "auto" {
+		t.Errorf("Expected Mode 'auto', got '%s'", dResp.Mode)
+	}
+
+	// Test 2b: /api/detect with direct mode
+	detectDirectResp, err := client.Get(server.URL() + "api/detect?mode=direct")
+	if err == nil {
+		defer detectDirectResp.Body.Close()
+		var dDirect DetectResponse
+		if err := json.NewDecoder(detectDirectResp.Body).Decode(&dDirect); err == nil {
+			if dDirect.Mode != "direct" {
+				t.Errorf("Expected Mode 'direct', got '%s'", dDirect.Mode)
+			}
+			if !strings.Contains(dDirect.Proxy, "Direct") {
+				t.Errorf("Expected Proxy description to mention Direct, got '%s'", dDirect.Proxy)
+			}
+		}
 	}
 
 	// Test 3: /api/privacy GET method not allowed
