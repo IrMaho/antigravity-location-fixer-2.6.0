@@ -24,6 +24,10 @@
 
 ## 📌 درباره پروژه و چرایی ساخت نسخه ۲.۶.۰
 
+> [!NOTE]
+> **⚖️ حقوق نشر و تقدیر از اثر اصلی (Upstream Credits & Attribution):**  
+> این پروژه یک نسخه مشتق‌شده (Fork / Derivative Work) بر پایه ریپازیتوری متن‌باز و عالی **[antigravity-cleaner](https://github.com/tawroot/antigravity-cleaner)** اثر **[tawroot](https://github.com/tawroot)** است که تحت پروانه **Apache License 2.0** منتشر شده است. تمام حقوق کپی‌رایت بخش‌های پایه متعلق به سازنده اصلی (tawroot) است. این فورک به منظور سازگاری کامل با تغییرات ساختاری گوگل ادیتور در نگارش ۲.۶.۰، رفع لوپ دانلود ۱۰٪، و ایجاد نرم‌افزار گرافیکی ۱-کلیکه توسعه داده شده است.
+
 در نسخه‌های قبلی آنتی‌گراویتی (مانند ۲.۵.۵)، پچرهای قدیمی کار می‌کردند؛ اما با انتشار **نسخه ۲.۶.۰ Antigravity IDE**، شرکت گوگل ساختار ادیتور را به طور اساسی تغییر داد که باعث از کار افتادن پچرهای قبلی و ایجاد مشکلات زیر شد:
 
 1. **گیر کردن در لوپ دانلود بی‌پایان (`Installing Antigravity Backend: Downloading 10%...`):**
@@ -192,9 +196,11 @@ go build -o antigravity.exe ./cmd/antigravity
 
 ---
 
-## 📄 License
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+## 📄 License & Attribution
 
-Developed with ❤️ by [IrMaho](https://github.com/IrMaho).
+This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) and [NOTICE](NOTICE) files for details.
+
+- **Original Project:** [antigravity-cleaner](https://github.com/tawroot/antigravity-cleaner) by [tawroot](https://github.com/tawroot) (Copyright © 2024-2026 Antigravity Cleaner Authors / tawroot).
+- **v2.6.0 Fixes & GUI Adaptations:** Maintained with ❤️ by [IrMaho](https://github.com/IrMaho) (Copyright © 2026 IrMaho).
 
 </div>

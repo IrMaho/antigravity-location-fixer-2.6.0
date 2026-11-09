@@ -1,0 +1,27 @@
+Antigravity Location Fixer v2.6.0
+Copyright 2026 IrMaho (https://github.com/IrMaho/antigravity-location-fixer-2.6.0)
+
+This product is a fork and derivative work based on:
+Antigravity Cleaner (https://github.com/tawroot/antigravity-cleaner)
+Copyright 2024-2026 Antigravity Cleaner Authors / tawroot
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+---
+Summary of Modifications in v2.6.0 by IrMaho:
+- Added compatibility and unpacked directory structure detection for Google Antigravity IDE v2.6.0 (resources/app/)
+- Resolved infinite backend download loop (10%) by updating minified symbol regex patterns in vscode/extension.js
+- Implemented standalone 1-click GUI tool (antigravity-gui.exe) with dark theme and automated detection
+- Integrated MultiGate bytecode patch for language_server.exe and agy.exe
+- Implemented parent process and active terminal session protection during patch application
+
