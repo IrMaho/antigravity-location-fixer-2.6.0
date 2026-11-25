@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,65 @@ import (
 
 	"github.com/tawroot/antigravity-cleaner/pkg/account"
 )
+
+func resolveCustomIdeExeCandidates(raw string) []string {
+	cleaned := strings.TrimSpace(strings.Trim(raw, `"'`))
+	if cleaned == "" {
+		return nil
+	}
+	if fi, err := os.Stat(cleaned); err == nil {
+		if !fi.IsDir() {
+			if strings.HasSuffix(strings.ToLower(cleaned), ".exe") || runtime.GOOS != "windows" {
+				return []string{cleaned}
+			}
+		} else {
+			return []string{
+				filepath.Join(cleaned, "Antigravity IDE.exe"),
+				filepath.Join(cleaned, "Antigravity.exe"),
+				filepath.Join(cleaned, "Antigravity IDE", "Antigravity IDE.exe"),
+				filepath.Join(cleaned, "Antigravity", "Antigravity.exe"),
+			}
+		}
+	}
+	return nil
+}
+
+func loadConfiguredIdePaths(home string) []string {
+	var paths []string
+	if envExe := strings.TrimSpace(os.Getenv("ANTIGRAVITY_IDE_EXE")); envExe != "" {
+		paths = append(paths, envExe)
+	}
+	var cfgFiles []string
+	if envCfg := strings.TrimSpace(os.Getenv("ANTIGRAVITY_MANAGER_SETTINGS")); envCfg != "" {
+		cfgFiles = append(cfgFiles, envCfg)
+	}
+	if localApp := os.Getenv("LOCALAPPDATA"); localApp != "" {
+		cfgFiles = append(cfgFiles, filepath.Join(localApp, "AntigravityManager", "settings.json"))
+	}
+	if user := os.Getenv("USERNAME"); user != "" {
+		sysDrive := os.Getenv("SystemDrive")
+		if sysDrive == "" {
+			sysDrive = "C:"
+		}
+		cfgFiles = append(cfgFiles, filepath.Join(sysDrive+string(os.PathSeparator), "Users", user, "AppData", "Local", "AntigravityManager", "settings.json"))
+	}
+	if home != "" {
+		cfgFiles = append(cfgFiles, filepath.Join(home, "AppData", "Local", "AntigravityManager", "settings.json"))
+	}
+	for _, f := range cfgFiles {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		var parsed struct {
+			IdeExePath string `json:"ide_exe_path"`
+		}
+		if json.Unmarshal(data, &parsed) == nil && strings.TrimSpace(parsed.IdeExePath) != "" {
+			paths = append(paths, strings.TrimSpace(parsed.IdeExePath))
+		}
+	}
+	return paths
+}
 
 // AppTarget describes an installed Antigravity application target (Standard 2.0 or IDE)
 type AppTarget struct {
@@ -41,6 +101,18 @@ func FindAllAntigravityExecutables() []AppTarget {
 					IsIDE:   isIDE,
 				})
 			}
+		}
+	}
+
+	// 0. User-configured IDE executable / env override (settings.json ide_exe_path or ANTIGRAVITY_IDE_EXE)
+	for _, cfgRaw := range loadConfiguredIdePaths(home) {
+		for _, cand := range resolveCustomIdeExeCandidates(cfgRaw) {
+			isIDE := strings.Contains(strings.ToLower(cand), "ide")
+			name := "Antigravity"
+			if isIDE {
+				name = "Antigravity IDE"
+			}
+			add(name, cand, isIDE)
 		}
 	}
 
@@ -364,24 +436,10 @@ func CleanChromiumProxyURL(proxyURL string) string {
 	return strings.Replace(proxyURL, "socks5h://", "socks5://", 1)
 }
 
-// launchElevatedWindows launches appPath with elevated privileges using PowerShell Start-Process -Verb RunAs
+// launchElevatedWindows launches appPath with elevated privileges using native ShellExecuteW("runas")
 // when a standard launch fails with Error 740 (The requested operation requires elevation).
-func launchElevatedWindows(appPath string, args []string, env []string) error {
-	var escapedArgs []string
-	for _, a := range args {
-		escaped := strings.ReplaceAll(a, "'", "''")
-		escapedArgs = append(escapedArgs, fmt.Sprintf("'%s'", escaped))
-	}
-	argList := strings.Join(escapedArgs, ", ")
-
-	psCommand := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList @(%s) -Verb RunAs",
-		strings.ReplaceAll(appPath, "'", "''"), argList)
-
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCommand)
-	if env != nil {
-		cmd.Env = env
-	}
-	if err := cmd.Run(); err != nil {
+func launchElevatedWindows(appPath string, args []string, _ []string) error {
+	if err := launchElevatedPlatform(appPath, args); err != nil {
 		return fmt.Errorf("elevation fallback failed: %w", err)
 	}
 	return nil
@@ -759,11 +817,7 @@ exec "$APP_PATH" --proxy-server="socks5://127.0.0.1:${ACTIVE_PORT}" "$@"
 	}
 
 	if runtime.GOOS == "windows" {
-		batPath := filepath.Join(home, "Desktop", "Antigravity-NoTUN.bat")
-		batContent := GenerateWindowsLauncherBatch(appPath, proxyURL)
-		_ = os.WriteFile(batPath, []byte(batContent), 0755)
-
-		// Generate native Windows shortcuts (.lnk) for all installed targets
+		// Generate native Windows shortcuts (.lnk) directly via OLE32 IShellLinkW (no .bat/.ps1 droppers)
 		targets := FindAllAntigravityExecutables()
 		if len(targets) == 0 {
 			targets = []AppTarget{{
@@ -782,9 +836,9 @@ exec "$APP_PATH" --proxy-server="socks5://127.0.0.1:${ACTIVE_PORT}" "$@"
 		}
 
 		if len(created) > 0 {
-			return fmt.Sprintf("Desktop shortcuts created with proxy environment inheritance (%s)", strings.Join(created, ", ")), nil
+			return fmt.Sprintf("Desktop shortcuts created (%s)", strings.Join(created, ", ")), nil
 		}
-		return batPath, nil
+		return "", fmt.Errorf("failed to create Windows desktop shortcut")
 	}
 
 	return "", fmt.Errorf("desktop launcher generation not supported on %s", runtime.GOOS)
@@ -903,47 +957,32 @@ try {
 `, escapePs(socksProxy), escapePs(socksProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(httpProxy), escapePs(chromiumProxy), appPath, filepath.Dir(appPath), appPath, filepath.Dir(appPath))
 }
 
-// CreateDesktopShortcutWindows creates a native Windows desktop shortcut and companion launcher wrappers
-// that export proxy environment variables (ALL_PROXY, HTTPS_PROXY, HTTP_PROXY, SSH_CONNECTION, SSH_CLIENT)
-// prior to launching Antigravity IDE so that child processes (agy.exe) inherit proxy settings and don't bypass them.
+// CreateDesktopShortcutWindows creates a clean native Windows desktop shortcut (.lnk) pointing
+// directly to the application executable via OLE32 IShellLinkW without spawning PowerShell or .bat/.ps1 wrappers.
 func CreateDesktopShortcutWindows(target AppTarget, proxyURL string) (string, error) {
 	home, _ := os.UserHomeDir()
 	desktopDir := filepath.Join(home, "Desktop")
 	_ = os.MkdirAll(desktopDir, 0755)
 
-	launcherDir := filepath.Join(home, ".antigravity")
-	_ = os.MkdirAll(launcherDir, 0755)
-
-	safeName := strings.ToLower(strings.ReplaceAll(target.Name, " ", "-"))
-	batPath := filepath.Join(launcherDir, fmt.Sprintf("%s-launcher.bat", safeName))
-	ps1Path := filepath.Join(launcherDir, fmt.Sprintf("%s-launcher.ps1", safeName))
-
-	// 1. Write batch wrapper
-	batContent := GenerateWindowsLauncherBatch(target.ExePath, proxyURL)
-	if err := os.WriteFile(batPath, []byte(batContent), 0755); err != nil {
-		return "", fmt.Errorf("failed to write batch launcher: %w", err)
+	var shortcutArgs string
+	if proxyURL != "" && proxyURL != "direct://" && proxyURL != "direct" {
+		chromiumProxy := strings.ReplaceAll(CleanChromiumProxyURL(proxyURL), `"`, ``)
+		shortcutArgs = fmt.Sprintf("--proxy-server=%s", chromiumProxy)
 	}
 
-	// 2. Write powershell wrapper
-	ps1Content := GenerateWindowsLauncherPowerShell(target.ExePath, proxyURL)
-	_ = os.WriteFile(ps1Path, []byte(ps1Content), 0755)
-
-	// 3. Create Windows .lnk shortcut pointing to batch wrapper with minimized window style (7)
 	lnkPath := filepath.Join(desktopDir, fmt.Sprintf("%s.lnk", target.Name))
-	lnkScript := fmt.Sprintf(`
-$WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("%s")
-$Shortcut.TargetPath = "%s"
-$Shortcut.WorkingDirectory = "%s"
-$Shortcut.IconLocation = "%s,0"
-$Shortcut.WindowStyle = 7
-$Shortcut.Description = "Google %s with Smart Proxy"
-$Shortcut.Save()
-`, lnkPath, batPath, filepath.Dir(target.ExePath), target.ExePath, target.Name)
-
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", lnkScript)
-	if err := cmd.Run(); err != nil {
-		return batPath, fmt.Errorf("shortcut creation failed: %w", err)
+	err := CreateNativeWindowsShortcut(
+		lnkPath,
+		target.ExePath,
+		shortcutArgs,
+		filepath.Dir(target.ExePath),
+		target.ExePath,
+		0,
+		fmt.Sprintf("Google %s", target.Name),
+		1, // SW_SHOWNORMAL
+	)
+	if err != nil {
+		return "", fmt.Errorf("shortcut creation failed: %w", err)
 	}
 
 	return lnkPath, nil

@@ -3,7 +3,6 @@ package patcher
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // LogFunc defines a structured logging function callback
@@ -211,28 +209,9 @@ func scanUnixPs(targetSubstr string) string {
 	return ""
 }
 
-// scanWindowsProcess queries powershell on Windows for running process matching target
+// scanWindowsProcess queries Windows Toolhelp32 snapshot natively for running process matching target
 func scanWindowsProcess(targetName string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	cleanName := strings.TrimSuffix(targetName, ".exe")
-	filter := fmt.Sprintf("*%s*", cleanName)
-	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command",
-		fmt.Sprintf("(Get-Process | Where-Object { $_.Name -like '%s' -or $_.ProcessName -like '%s' } | Select-Object -ExpandProperty Path -ErrorAction SilentlyContinue)", filter, filter))
-	out, err := cmd.Output()
-	if err == nil {
-		lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-		for _, line := range lines {
-			p := strings.TrimSpace(line)
-			if p != "" {
-				if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
-					return p
-				}
-			}
-		}
-	}
-	return ""
+	return winFindProcessPathBySubstring(targetName)
 }
 
 // isBackupOrTempFile returns true if fileName ends with backup or temporary suffixes
@@ -495,6 +474,28 @@ func FindCandidateBinaries() []string {
 	return GetStandardLanguageServerCandidates()
 }
 
+// GetRealUserHomeWindows returns the real Windows user home directory (e.g. C:\Users\<Username>),
+// even if USERPROFILE or HOME are redirected inside isolated sandboxes or profiles.
+func GetRealUserHomeWindows() string {
+	if runtime.GOOS != "windows" {
+		h, _ := os.UserHomeDir()
+		return h
+	}
+	username := strings.TrimSpace(os.Getenv("USERNAME"))
+	sysDrive := strings.TrimSpace(os.Getenv("SystemDrive"))
+	if sysDrive == "" {
+		sysDrive = "C:"
+	}
+	if username != "" {
+		realCand := filepath.Join(sysDrive+`\Users`, username)
+		if fi, err := os.Stat(realCand); err == nil && fi.IsDir() {
+			return realCand
+		}
+	}
+	h, _ := os.UserHomeDir()
+	return h
+}
+
 // GetStandardLanguageServerCandidates returns all standard paths across Linux, Windows, macOS
 func GetStandardLanguageServerCandidates() []string {
 	home, _ := os.UserHomeDir()
@@ -502,9 +503,14 @@ func GetStandardLanguageServerCandidates() []string {
 	var candidates []string
 	seen := make(map[string]bool)
 	addCandidate := func(p string) {
-		if p != "" && !seen[p] {
-			seen[p] = true
-			candidates = append(candidates, p)
+		if p == "" {
+			return
+		}
+		clean := filepath.Clean(p)
+		key := strings.ToLower(clean)
+		if !seen[key] {
+			seen[key] = true
+			candidates = append(candidates, clean)
 		}
 	}
 
@@ -558,6 +564,7 @@ func GetStandardLanguageServerCandidates() []string {
 
 	// 3. Windows candidate roots
 	userProfile := os.Getenv("USERPROFILE")
+	realHome := GetRealUserHomeWindows()
 	winRoots := []string{
 		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Antigravity"),
 		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "antigravity"),
@@ -577,6 +584,24 @@ func GetStandardLanguageServerCandidates() []string {
 		filepath.Join(home, "Desktop", "Antigravity"),
 		filepath.Join(home, "Desktop", "Antigravity IDE"),
 		filepath.Join(home, "Desktop"),
+	}
+
+	if realHome != "" {
+		winRoots = append(winRoots,
+			filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity"),
+			filepath.Join(realHome, "AppData", "Local", "Programs", "antigravity"),
+			filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity IDE"),
+			filepath.Join(realHome, ".gemini"),
+			filepath.Join(realHome, "Desktop", "Antigravity"),
+			filepath.Join(realHome, "Desktop", "Antigravity IDE"),
+			filepath.Join(realHome, "Desktop"),
+			filepath.Join(realHome, "Downloads", "Antigravity"),
+			filepath.Join(realHome, "Downloads"),
+		)
+	}
+
+	for _, cDir := range FindCustomAndDriveInstallDirs() {
+		winRoots = append(winRoots, cDir)
 	}
 
 	winBins := []string{
@@ -621,9 +646,23 @@ func GetStandardLanguageServerCandidates() []string {
 		addCandidate(filepath.Join(localAppData, "agy", "bin", "agy.exe"))
 		addCandidate(filepath.Join(localAppData, "Programs", "agy", "agy.exe"))
 	}
+	if realHome != "" {
+		addCandidate(filepath.Join(realHome, ".gemini", "bin", "agy.exe"))
+		addCandidate(filepath.Join(realHome, ".gemini", "bin", "agy"))
+		addCandidate(filepath.Join(realHome, "AppData", "Local", "agy", "bin", "agy.exe"))
+		addCandidate(filepath.Join(realHome, "AppData", "Local", "Programs", "agy", "agy.exe"))
+		addCandidate(filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity", "resources", "bin", "language_server.exe"))
+		addCandidate(filepath.Join(realHome, "AppData", "Local", "Programs", "antigravity", "resources", "bin", "language_server.exe"))
+	}
 	if progFiles := os.Getenv("ProgramFiles"); progFiles != "" {
 		addCandidate(filepath.Join(progFiles, "agy", "agy.exe"))
 	}
+
+	// 3b. Add all managed profiles discovered from AntigravityManager registry
+	for _, agyBin := range FindAllManagedProfileAgyBins() {
+		addCandidate(agyBin)
+	}
+
 
 	// 4. macOS candidate roots
 	macRoots := []string{
@@ -698,13 +737,24 @@ func FindAllLanguageServers(logger LogFunc) []string {
 		if p == "" {
 			return
 		}
+		base := strings.ToLower(filepath.Base(p))
+		if strings.HasSuffix(base, ".cmd") || strings.HasSuffix(base, ".bat") || strings.HasSuffix(base, ".ps1") || strings.HasSuffix(base, ".sh") {
+			return
+		}
+		if base == "antigravity.exe" || base == "antigravity" {
+			return
+		}
+		if isBackupOrTempFile(base) {
+			return
+		}
 		if real, err := filepath.EvalSymlinks(p); err == nil && real != "" {
 			p = real
 		}
 		clean := filepath.Clean(p)
-		if !seen[clean] {
+		key := strings.ToLower(clean)
+		if !seen[key] {
 			if fi, err := os.Stat(clean); err == nil && !fi.IsDir() {
-				seen[clean] = true
+				seen[key] = true
 				results = append(results, clean)
 			}
 		}
@@ -760,6 +810,7 @@ func FindAllLanguageServers(logger LogFunc) []string {
 	// 7. Dynamic scan of candidate roots for any unlisted versions
 	var candidateRoots []string
 	home, _ := os.UserHomeDir()
+	realHome := GetRealUserHomeWindows()
 	if runtime.GOOS == "windows" {
 		candidateRoots = append(candidateRoots,
 			filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Antigravity"),
@@ -778,6 +829,22 @@ func FindAllLanguageServers(logger LogFunc) []string {
 			filepath.Join(home, "Desktop", "Antigravity"),
 			filepath.Join(home, "Desktop"),
 		)
+		if realHome != "" {
+			candidateRoots = append(candidateRoots,
+				filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity"),
+				filepath.Join(realHome, "AppData", "Local", "Programs", "antigravity"),
+				filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity IDE"),
+				filepath.Join(realHome, ".gemini"),
+				filepath.Join(realHome, "Desktop", "Antigravity"),
+				filepath.Join(realHome, "Desktop", "Antigravity IDE"),
+				filepath.Join(realHome, "Desktop"),
+				filepath.Join(realHome, "Downloads", "Antigravity"),
+				filepath.Join(realHome, "Downloads"),
+			)
+		}
+		for _, customDir := range FindCustomAndDriveInstallDirs() {
+			candidateRoots = append(candidateRoots, customDir)
+		}
 		for _, parent := range []string{filepath.Join(os.Getenv("USERPROFILE"), "Desktop"), filepath.Join(os.Getenv("USERPROFILE"), "Downloads"), filepath.Join(home, "Desktop")} {
 			if parent != "" {
 				if entries, err := os.ReadDir(parent); err == nil {
@@ -867,6 +934,10 @@ func FindLanguageServerModular(logger LogFunc) string {
 // FindRunningLanguageServerPID returns the PID of an active language_server, or 0 if none is active
 func FindRunningLanguageServerPID() int {
 	selfPid := os.Getpid()
+
+	if runtime.GOOS == "windows" {
+		return winFindRunningLanguageServerPID(selfPid)
+	}
 
 	if runtime.GOOS == "linux" {
 		entries, err := os.ReadDir("/proc")

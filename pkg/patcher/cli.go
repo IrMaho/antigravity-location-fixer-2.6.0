@@ -224,3 +224,29 @@ func PatchAgy(binPath string) (string, error) {
 
 	return fmt.Sprintf("Successfully patched %s [%s]", filepath.Base(binPath), strings.Join(appliedNames, ", ")), nil
 }
+
+// PatchAllManagedProfiles patches agy.exe across all managed profiles discovered
+func PatchAllManagedProfiles(logger LogFunc) (int, []string, error) {
+	if logger == nil {
+		logger = defaultLogger
+	}
+	profiles := FindAllManagedProfiles()
+	patchedCount := 0
+	var reports []string
+
+	for _, prof := range profiles {
+		if prof.AgyBin != "" && fileExists(prof.AgyBin) {
+			res, err := PatchAgy(prof.AgyBin)
+			if err != nil {
+				reports = append(reports, fmt.Sprintf("%s: %v", prof.Name, err))
+				logger("Profile %s patch warning: %v", prof.Name, err)
+			} else {
+				patchedCount++
+				reports = append(reports, fmt.Sprintf("%s: %s", prof.Name, res))
+				logger("Profile %s: %s", prof.Name, res)
+			}
+		}
+	}
+	return patchedCount, reports, nil
+}
+

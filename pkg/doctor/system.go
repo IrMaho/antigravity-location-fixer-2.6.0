@@ -40,14 +40,7 @@ func DetectOSInfo() string {
 		}
 		return fmt.Sprintf("macOS [%s]", arch)
 	case "windows":
-		// Query Windows build details via registry or powershell
-		if out, err := exec.Command("powershell", "-NoProfile", "-Command", "[System.Environment]::OSVersion.VersionString").Output(); err == nil {
-			trimmed := strings.TrimSpace(string(out))
-			if trimmed != "" {
-				return fmt.Sprintf("%s [%s]", trimmed, arch)
-			}
-		}
-		return fmt.Sprintf("Windows [%s]", arch)
+		return detectWindowsOSInfoNative(arch)
 	default:
 		return fmt.Sprintf("%s [%s]", runtime.GOOS, arch)
 	}

@@ -56,7 +56,9 @@ func CopyToClipboard(text string) bool {
 	case "darwin":
 		cmd = exec.Command("pbcopy")
 	case "windows":
-		cmd = exec.Command("powershell", "-NoProfile", "-Command", "Set-Clipboard", "-Value", "$input")
+		if copyToWindowsClipboardNative(text) {
+			return true
+		}
 	default: // Linux
 		if _, err := exec.LookPath("wl-copy"); err == nil {
 			cmd = exec.Command("wl-copy")
@@ -130,7 +132,10 @@ func openFileInDefaultEditor(filePath string) {
 	case "darwin":
 		cmd = exec.Command("open", filePath)
 	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", "", filePath)
+		if openWindowsFileNative(filePath) {
+			return
+		}
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", filePath)
 	default: // Linux
 		if _, err := exec.LookPath("xdg-open"); err == nil {
 			cmd = exec.Command("xdg-open", filePath)

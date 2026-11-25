@@ -83,31 +83,44 @@ func RunDiagnostics(verbose bool) []DiagnosticItem {
 		}
 	}
 
-	// 2. Language Server Core
-	lsPath := patcher.FindLanguageServerModular(nil)
-	if lsPath == "" {
-		lsPath = patcher.FindLanguageServer()
-	}
-	if lsPath != "" {
-		status := patcher.CheckLanguageServerStatus(lsPath)
-		itemStatus := "WARN"
-		human := "Official (Unpatched)"
-		if strings.HasPrefix(status, "Patched") {
-			itemStatus = "OK"
-			human = "Unlocked (Patched)"
+	// 2. Language Server Core & Standalone Binaries
+	allServers := patcher.FindAllLanguageServers(nil)
+	if len(allServers) > 0 {
+		var patchedList []string
+		var unpatchedList []string
+		var paths []string
+		for _, s := range allServers {
+			status := patcher.CheckLanguageServerStatus(s)
+			name := filepath.Base(filepath.Dir(s)) + "/" + filepath.Base(s)
+			if strings.HasPrefix(status, "Patched") {
+				patchedList = append(patchedList, fmt.Sprintf("%s (%s)", name, status))
+			} else {
+				unpatchedList = append(unpatchedList, fmt.Sprintf("%s (%s)", name, status))
+			}
+			paths = append(paths, fmt.Sprintf("Core Binary: `%s` [%s]", s, status))
 		}
-		paths := []string{fmt.Sprintf("Core Binary: `%s`", lsPath)}
-		bakPath := lsPath + ".agybak"
-		if fi, err := os.Stat(bakPath); err == nil && !fi.IsDir() {
-			paths = append(paths, fmt.Sprintf("Backup: `Present (%s, %d bytes)`", filepath.Base(bakPath), fi.Size()))
-		} else {
-			paths = append(paths, "Backup: `None (Will be created on first patch)`")
+		itemStatus := "OK"
+		human := "Unlocked (Patched)"
+		if len(patchedList) == 0 && len(unpatchedList) > 0 {
+			itemStatus = "WARN"
+			human = "Official (Unpatched)"
+		} else if len(unpatchedList) > 0 {
+			human = fmt.Sprintf("Unlocked (%d/%d targets patched)", len(patchedList), len(allServers))
+		} else if len(allServers) > 1 {
+			human = fmt.Sprintf("All %d Core Targets Unlocked", len(allServers))
+		}
+		debug := strings.Join(patchedList, ", ")
+		if len(unpatchedList) > 0 {
+			if debug != "" {
+				debug += " | Unpatched: "
+			}
+			debug += strings.Join(unpatchedList, ", ")
 		}
 		items = append(items, DiagnosticItem{
 			Name:         "Core Engine",
 			Status:       itemStatus,
 			HumanSummary: human,
-			DebugDetails: fmt.Sprintf("%s (%s)", filepath.Base(lsPath), status),
+			DebugDetails: debug,
 			TargetPaths:  paths,
 		})
 	} else {

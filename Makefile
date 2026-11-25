@@ -26,6 +26,7 @@ release: clean
 	GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-darwin-amd64 ./cmd/antigravity
 	@echo "Building macOS arm64 (Apple Silicon)..."
 	GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-darwin-arm64 ./cmd/antigravity
-	@echo "Building Windows amd64..."
-	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(APP_NAME)-windows-amd64.exe ./cmd/antigravity
+	@echo "Building Windows amd64 (preserving symbol tables to prevent AV false positives)..."
+	GOOS=windows GOARCH=amd64 go build -trimpath -o $(BUILD_DIR)/$(APP_NAME)-windows-amd64.exe ./cmd/antigravity
+	GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-H windowsgui" -o $(BUILD_DIR)/AntigravityLocationFixer.exe ./cmd/antigravity-gui
 	@echo "All builds completed in $(BUILD_DIR)/"

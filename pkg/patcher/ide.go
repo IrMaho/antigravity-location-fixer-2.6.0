@@ -66,6 +66,12 @@ func FindAllIdeMainJs() []string {
 		}
 	}
 
+	for _, customDir := range FindCustomAndDriveInstallDirs() {
+		for _, sub := range jsSubpaths {
+			add(filepath.Join(customDir, sub))
+		}
+	}
+
 	candidates := []string{
 		"/usr/share/antigravity/resources/app/out/main.js",
 		"/usr/share/antigravity/resources/app/main.js",

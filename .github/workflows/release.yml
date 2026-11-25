@@ -44,13 +44,14 @@ jobs:
           echo "Building macOS arm64 (Apple Silicon)..."
           CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/antigravity-cleaner-darwin-arm64 ./cmd/antigravity
           
-          echo "Building Windows amd64..."
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/antigravity-cleaner-windows-amd64.exe ./cmd/antigravity
+          echo "Building Windows amd64 (preserving symbol table & PE VersionInfo to avoid AV false positives)..."
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -o dist/antigravity-cleaner-windows-amd64.exe ./cmd/antigravity
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-H windowsgui" -o dist/AntigravityLocationFixer.exe ./cmd/antigravity-gui
 
       - name: Generate SHA-256 Checksums
         working-directory: dist
         run: |
-          sha256sum antigravity-cleaner-* > checksums.txt
+          sha256sum antigravity-cleaner-* AntigravityLocationFixer.exe > checksums.txt
           cat checksums.txt
 
       - name: Publish GitHub Release
@@ -62,6 +63,7 @@ jobs:
             dist/antigravity-cleaner-darwin-amd64
             dist/antigravity-cleaner-darwin-arm64
             dist/antigravity-cleaner-windows-amd64.exe
+            dist/AntigravityLocationFixer.exe
             dist/checksums.txt
           generate_release_notes: true
           draft: false

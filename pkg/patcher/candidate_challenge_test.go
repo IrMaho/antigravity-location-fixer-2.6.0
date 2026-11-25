@@ -176,6 +176,10 @@ func TestSafety_IsAntigravityRunningAndKill(t *testing.T) {
 	running := IsAntigravityRunning()
 	t.Logf("IsAntigravityRunning() = %v", running)
 
+	if os.Getenv("AG_RUN_DESTRUCTIVE_KILL_TEST") != "1" {
+		t.Skip("skipping live host KillAntigravityProcesses() during automated test runs (set AG_RUN_DESTRUCTIVE_KILL_TEST=1 to run)")
+	}
+
 	count, err := KillAntigravityProcesses()
 	t.Logf("KillAntigravityProcesses() = %d, err = %v", count, err)
 }

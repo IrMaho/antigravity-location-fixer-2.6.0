@@ -34,6 +34,7 @@ var (
 // FindAntigravityUnpacked searches for unpacked resources/app directory across standard installation paths
 func FindAntigravityUnpacked() string {
 	home, _ := os.UserHomeDir()
+	realHome := GetRealUserHomeWindows()
 
 	candidates := []string{
 		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs", "Antigravity IDE", "resources", "app"),
@@ -57,6 +58,17 @@ func FindAntigravityUnpacked() string {
 		"/Applications/Antigravity.app/Contents/Resources/app",
 	}
 
+	if realHome != "" {
+		candidates = append(candidates,
+			filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity IDE", "resources", "app"),
+			filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity", "resources", "app"),
+			filepath.Join(realHome, "AppData", "Local", "Programs", "antigravity", "resources", "app"),
+		)
+	}
+	for _, cDir := range FindCustomAndDriveInstallDirs() {
+		candidates = append(candidates, filepath.Join(cDir, "resources", "app"))
+	}
+
 	for _, c := range candidates {
 		if fi, err := os.Stat(c); err == nil && fi.IsDir() {
 			return c
@@ -68,6 +80,7 @@ func FindAntigravityUnpacked() string {
 // FindAntigravityAsar searches for app.asar or unpacked resources/app in standard Antigravity installation paths
 func FindAntigravityAsar() string {
 	home, _ := os.UserHomeDir()
+	realHome := GetRealUserHomeWindows()
 
 	candidates := []string{
 		filepath.Join(home, "Applications", "Antigravity", "resources", "app.asar"),
@@ -86,6 +99,17 @@ func FindAntigravityAsar() string {
 		filepath.Join(home, "AppData", "Local", "Programs", "Antigravity IDE", "resources", "app.asar"),
 		"/Applications/Antigravity.app/Contents/Resources/app.asar",
 		"/Applications/Antigravity IDE.app/Contents/Resources/app.asar",
+	}
+
+	if realHome != "" {
+		candidates = append(candidates,
+			filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity", "resources", "app.asar"),
+			filepath.Join(realHome, "AppData", "Local", "Programs", "antigravity", "resources", "app.asar"),
+			filepath.Join(realHome, "AppData", "Local", "Programs", "Antigravity IDE", "resources", "app.asar"),
+		)
+	}
+	for _, cDir := range FindCustomAndDriveInstallDirs() {
+		candidates = append(candidates, filepath.Join(cDir, "resources", "app.asar"))
 	}
 
 	for _, c := range candidates {

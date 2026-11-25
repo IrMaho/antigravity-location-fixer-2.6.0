@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-11-26
+
+### 🛡️ Kaspersky / Antivirus Behavioral False-Positive Elimination & 10x Discovery Speedup
+
+- **Native Win32 API Migration (Zero `powershell.exe`, `WScript.Shell`, `taskkill`, `tasklist`, or `.bat`/`.ps1` wrappers):**
+  - Replaced process probing and termination with native `CreateToolhelp32Snapshot`, `QueryFullProcessImageNameW`, and `TerminateProcess`.
+  - Added pure-Go `[MS-SHLLINK]` `.lnk` binary parser (`ResolveWindowsShortcut`) and native OLE32 `IShellLinkW` shortcut builder (`CreateNativeWindowsShortcut`).
+  - Added native `comdlg32.dll` / `shell32.dll` file & folder dialogs, Windows Registry OS detection, and native Win32 clipboard helpers.
+- **Official Windows PE Metadata & Unstripped Symbols:**
+  - Embedded `VS_VERSION_INFO`, application icons, and Windows 10/11 `asInvoker` UAC manifests (`.syso`) into both GUI and CLI executables, and removed `-ldflags="-s -w"` on Windows builds per official Go AV guidance.
+- **Multi-Account Synchronization & 10x Faster Startup:**
+  - Added managed profile patching support (`Antigravity Manager`) plus thread-safe caching for Windows Registry/drive scans and `agy.exe` patch checks.
+
+---
+
 ## [5.4.5] - 2026-11-02
 
 ### 🚑 Stability & Self-Healing Hotfix: Windows Binary Restoration, macOS CodeSign & Flag Modernization

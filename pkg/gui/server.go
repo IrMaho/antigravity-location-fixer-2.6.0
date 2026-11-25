@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -46,20 +45,23 @@ type Response struct {
 
 // DetectResponse represents auto-detection details for the frontend.
 type DetectResponse struct {
-	App            string          `json:"app"`
-	Path           string          `json:"path"`
-	Detected       bool            `json:"detected"`
-	Proxy          string          `json:"proxy"`
-	Mode           string          `json:"mode"`
-	VpnActive      bool            `json:"vpn_active"`
-	OS             string          `json:"os"`
-	Arch           string          `json:"arch"`
-	WrapperActive  bool            `json:"wrapper_active"`
-	RunningPID     int             `json:"running_pid"`
-	ProcessRunning bool            `json:"process_running"`
-	IsInstaller    bool            `json:"is_installer,omitempty"`
-	Notice         string          `json:"notice,omitempty"`
-	Targets        map[string]bool `json:"targets,omitempty"`
+	App                      string          `json:"app"`
+	Path                     string          `json:"path"`
+	Detected                 bool            `json:"detected"`
+	Proxy                    string          `json:"proxy"`
+	Mode                     string          `json:"mode"`
+	VpnActive                bool            `json:"vpn_active"`
+	OS                       string          `json:"os"`
+	Arch                     string          `json:"arch"`
+	WrapperActive            bool            `json:"wrapper_active"`
+	RunningPID               int             `json:"running_pid"`
+	ProcessRunning           bool            `json:"process_running"`
+	IsInstaller              bool            `json:"is_installer,omitempty"`
+	Notice                   string          `json:"notice,omitempty"`
+	Targets                  map[string]bool `json:"targets,omitempty"`
+	ManagedProfilesCount     int             `json:"managed_profiles_count"`
+	ManagedProfilesUnpatched int             `json:"managed_profiles_unpatched"`
+	ProfileScope             string          `json:"profile_scope"`
 }
 
 // NewServer initializes a new GUI loopback server on an ephemeral port.
@@ -87,6 +89,7 @@ func NewServer() (*Server, error) {
 	// REST API routes
 	mux.HandleFunc("/api/detect", s.handleDetect)
 	mux.HandleFunc("/api/patch", s.handlePatch)
+	mux.HandleFunc("/api/profile-scope", s.handleProfileScope)
 	mux.HandleFunc("/api/launch", s.handleLaunch)
 	mux.HandleFunc("/api/create-launcher", s.handleCreateLauncher)
 	mux.HandleFunc("/api/browse", s.handleBrowse)
@@ -340,24 +343,72 @@ func (s *Server) handleDetect(w http.ResponseWriter, r *http.Request) {
 		wrapperActive = wm.IsWrapperInstalled()
 	}
 
+	managedProfiles := patcher.FindAllManagedProfiles()
+	unpatchedManagedCount := 0
+	for _, mp := range managedProfiles {
+		if !mp.IsPatched && mp.AgyBin != "" {
+			unpatchedManagedCount++
+		}
+	}
+	cleanerCfg := patcher.LoadCleanerConfig()
+
 	resp := DetectResponse{
-		App:            "Google Antigravity 2.x (IDE & Language Server)",
-		Path:           targetPath,
-		Detected:       detected,
-		Proxy:          proxyDesc,
-		Mode:           mode,
-		VpnActive:      vpnActive,
-		OS:             runtime.GOOS,
-		Arch:           runtime.GOARCH,
-		WrapperActive:  wrapperActive,
-		RunningPID:     runningPID,
-		ProcessRunning: runningPID > 0,
-		IsInstaller:    isInstaller,
-		Notice:         notice,
-		Targets:        targetsMap,
+		App:                      "Google Antigravity 2.x (IDE & Language Server)",
+		Path:                     targetPath,
+		Detected:                 detected,
+		Proxy:                    proxyDesc,
+		Mode:                     mode,
+		VpnActive:                vpnActive,
+		OS:                       runtime.GOOS,
+		Arch:                     runtime.GOARCH,
+		WrapperActive:            wrapperActive,
+		RunningPID:               runningPID,
+		ProcessRunning:           runningPID > 0,
+		IsInstaller:              isInstaller,
+		Notice:                   notice,
+		Targets:                  targetsMap,
+		ManagedProfilesCount:     len(managedProfiles),
+		ManagedProfilesUnpatched: unpatchedManagedCount,
+		ProfileScope:             cleanerCfg.ProfileScope,
 	}
 
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func (s *Server) handleProfileScope(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method == http.MethodPost {
+		var req struct {
+			Scope string `json:"scope"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		newScope := strings.TrimSpace(req.Scope)
+		if newScope != "primary" {
+			newScope = "all"
+		}
+		cfg := patcher.LoadCleanerConfig()
+		cfg.ProfileScope = newScope
+		_ = patcher.SaveCleanerConfig(cfg)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"scope":   newScope,
+		})
+		return
+	}
+
+	cfg := patcher.LoadCleanerConfig()
+	managed := patcher.FindAllManagedProfiles()
+	unpatched := 0
+	for _, m := range managed {
+		if !m.IsPatched && m.AgyBin != "" {
+			unpatched++
+		}
+	}
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"scope":     cfg.ProfileScope,
+		"count":     len(managed),
+		"unpatched": unpatched,
+	})
 }
 
 func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
@@ -369,10 +420,12 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 
 	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
-	if customPath == "" || mode == "" {
+	scope := strings.TrimSpace(r.URL.Query().Get("scope"))
+	if customPath == "" || mode == "" || scope == "" {
 		var reqBody struct {
-			Path string `json:"path"`
-			Mode string `json:"mode"`
+			Path  string `json:"path"`
+			Mode  string `json:"mode"`
+			Scope string `json:"scope"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&reqBody)
 		if customPath == "" {
@@ -381,12 +434,19 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 		if mode == "" {
 			mode = strings.TrimSpace(reqBody.Mode)
 		}
+		if scope == "" {
+			scope = strings.TrimSpace(reqBody.Scope)
+		}
 	}
 	if mode == "" {
 		mode = "auto"
 	}
-
-	proxyURL, _ := resolveProxyForMode(mode)
+	if scope == "" {
+		scope = patcher.LoadCleanerConfig().ProfileScope
+	}
+	if scope != "primary" {
+		scope = "all"
+	}
 
 	_, _ = patcher.KillAntigravityProcesses()
 
@@ -462,6 +522,14 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 		targetStatus["cli_agy"] = false
 	}
 
+	// Target 4b: Managed Profiles (Antigravity Manager profiles)
+	if scope == "all" {
+		if patchedCount, _, _ := patcher.PatchAllManagedProfiles(nil); patchedCount > 0 {
+			patchedDetails = append(patchedDetails, fmt.Sprintf("%d پروفایل منیجر", patchedCount))
+			targetStatus["managed_profiles"] = true
+		}
+	}
+
 	// Target 5: ASAR Zero-Log
 	if _, err := patcher.PatchAsarZeroLog(customAsar); err == nil {
 		patchedDetails = append(patchedDetails, "Zero-Log ASAR")
@@ -472,9 +540,6 @@ func (s *Server) handlePatch(w http.ResponseWriter, r *http.Request) {
 
 	// Target 6: Clear 429 quota cache & tokens
 	_, _ = cleaner.SurgicalReset429("", false)
-
-	// Target 7: Desktop shortcut
-	_, _ = proxy.GenerateNoTunDesktopLauncherCustom(customPath, proxyURL)
 
 	ideCoreSuccess := targetStatus["ide_main_js"] || targetStatus["extension_js"] || targetStatus["language_server"]
 	var success bool
@@ -511,10 +576,12 @@ func (s *Server) handleLaunch(w http.ResponseWriter, r *http.Request) {
 
 	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
-	if customPath == "" || mode == "" {
+	scope := strings.TrimSpace(r.URL.Query().Get("scope"))
+	if customPath == "" || mode == "" || scope == "" {
 		var reqBody struct {
-			Path string `json:"path"`
-			Mode string `json:"mode"`
+			Path  string `json:"path"`
+			Mode  string `json:"mode"`
+			Scope string `json:"scope"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&reqBody)
 		if customPath == "" {
@@ -523,9 +590,18 @@ func (s *Server) handleLaunch(w http.ResponseWriter, r *http.Request) {
 		if mode == "" {
 			mode = strings.TrimSpace(reqBody.Mode)
 		}
+		if scope == "" {
+			scope = strings.TrimSpace(reqBody.Scope)
+		}
 	}
 	if mode == "" {
 		mode = "auto"
+	}
+	if scope == "" {
+		scope = patcher.LoadCleanerConfig().ProfileScope
+	}
+	if scope != "primary" {
+		scope = "all"
 	}
 
 	// Shortcut resolution
@@ -583,10 +659,12 @@ func (s *Server) handleCreateLauncher(w http.ResponseWriter, r *http.Request) {
 
 	mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	customPath := strings.TrimSpace(r.URL.Query().Get("path"))
-	if customPath == "" || mode == "" {
+	scope := strings.TrimSpace(r.URL.Query().Get("scope"))
+	if customPath == "" || mode == "" || scope == "" {
 		var reqBody struct {
-			Path string `json:"path"`
-			Mode string `json:"mode"`
+			Path  string `json:"path"`
+			Mode  string `json:"mode"`
+			Scope string `json:"scope"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&reqBody)
 		if customPath == "" {
@@ -595,9 +673,18 @@ func (s *Server) handleCreateLauncher(w http.ResponseWriter, r *http.Request) {
 		if mode == "" {
 			mode = strings.TrimSpace(reqBody.Mode)
 		}
+		if scope == "" {
+			scope = strings.TrimSpace(reqBody.Scope)
+		}
 	}
 	if mode == "" {
 		mode = "auto"
+	}
+	if scope == "" {
+		scope = patcher.LoadCleanerConfig().ProfileScope
+	}
+	if scope != "primary" {
+		scope = "all"
 	}
 
 	// Shortcut resolution & installer protection
@@ -674,51 +761,11 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 }
 
 func browseFileWindows() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-
-	script := `
-[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
-$d = New-Object System.Windows.Forms.OpenFileDialog
-$d.Title = 'Select Antigravity IDE Executable, Shortcut, or main.js'
-$d.Filter = 'Antigravity Targets (*.exe;*.lnk;*.js)|*.exe;*.lnk;*.js|Shortcuts (*.lnk)|*.lnk|Executables (*.exe)|*.exe|JavaScript (*.js)|*.js|All Files (*.*)|*.*'
-$desktop = [Environment]::GetFolderPath('Desktop')
-$d.InitialDirectory = $desktop
-if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Write-Output $d.FileName
-}
-`
-	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command", script)
-	out, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(out)), nil
+	return browseFileWindowsNative()
 }
 
 func browseFolderWindows() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-
-	script := `
-[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
-$d = New-Object System.Windows.Forms.FolderBrowserDialog
-$d.Description = 'Select Antigravity Installation Directory (e.g. on Desktop)'
-$desktop = [Environment]::GetFolderPath('Desktop')
-$d.SelectedPath = $desktop
-$d.ShowNewFolderButton = $false
-if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Write-Output $d.SelectedPath
-}
-`
-	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command", script)
-	out, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(out)), nil
+	return browseFolderWindowsNative()
 }
 
 func browseMac(browseType string) (string, error) {

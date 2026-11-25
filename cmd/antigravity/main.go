@@ -173,12 +173,28 @@ func runAdvancedMenu() {
 		fmt.Printf("  [%s] %s\n", keyStyle.Render("4"), descStyle.Render("Create / Rebuild Desktop Shortcut"))
 		fmt.Printf("  [%s] %s\n", keyStyle.Render("5"), descStyle.Render("Generate Diagnostic Report (Auto-Open Text Report)"))
 		fmt.Printf("  [%s] %s\n", keyStyle.Render("6"), descStyle.Render("Check for Updates (Self-Update)"))
+		cleanerCfg := patcher.LoadCleanerConfig()
+		scopeLabel := "All Managed Profiles (Auto-Sync)"
+		if cleanerCfg.ProfileScope == "primary" {
+			scopeLabel = "Primary Profile Only"
+		}
+		fmt.Printf("  [%s] %s: %s\n", keyStyle.Render("p"), descStyle.Render("Toggle Multi-Account Profile Scope"), lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF9F")).Render(scopeLabel))
 		fmt.Printf("  [%s] %s\n", keyStyle.Render("7"), descStyle.Render("Restore Backups (.agybak)"))
 		fmt.Printf("  [%s] %s\n", keyStyle.Render("0"), descStyle.Render("Back to Main Menu"))
 		fmt.Println()
 
 		choice := ui.ReadInput("Select an advanced option")
 		switch choice {
+		case "p", "P":
+			cfg := patcher.LoadCleanerConfig()
+			if cfg.ProfileScope == "all" {
+				cfg.ProfileScope = "primary"
+			} else {
+				cfg.ProfileScope = "all"
+			}
+			_ = patcher.SaveCleanerConfig(cfg)
+			fmt.Printf("\n  %s\n", lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF9F")).Render("✔ Profile scope updated to: "+cfg.ProfileScope))
+			ui.PromptKey()
 		case "1":
 			runPatchCore()
 			ui.PromptKey()
@@ -408,6 +424,15 @@ func runQuickAutoFix() {
 		ui.PrintStatus("INFO", "Antigravity CLI (agy)", "Standalone Mode (CLI not installed, optional)")
 	} else {
 		ui.PrintStatus("OK", "Antigravity CLI (agy)", res)
+	}
+
+	// Managed Profiles (Antigravity Manager profiles)
+	cleanerCfg := patcher.LoadCleanerConfig()
+	if cleanerCfg.ProfileScope == "all" {
+		managedCount, _, _ := patcher.PatchAllManagedProfiles(nil)
+		if managedCount > 0 {
+			ui.PrintStatus("OK", "Manager Profiles", fmt.Sprintf("Patched %d isolated accounts in C:\\Antigravity-Profiles", managedCount))
+		}
 	}
 
 	if res, err := patcher.PatchIdeMainJs(""); err != nil {

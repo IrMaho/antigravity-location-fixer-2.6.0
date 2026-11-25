@@ -15,19 +15,11 @@ func IsAntigravityRunning() bool {
 	selfPID := fmt.Sprintf("%d", os.Getpid())
 
 	if runtime.GOOS == "windows" {
-		out, err := exec.Command("tasklist", "/FI", "IMAGENAME eq language_server.exe").Output()
-		if err == nil && strings.Contains(string(out), "language_server") {
-			return true
-		}
-		out2, err2 := exec.Command("tasklist", "/FI", "IMAGENAME eq Antigravity.exe").Output()
-		if err2 == nil && strings.Contains(string(out2), "Antigravity") {
-			return true
-		}
-		out3, err3 := exec.Command("tasklist", "/FI", "IMAGENAME eq Antigravity IDE.exe").Output()
-		if err3 == nil && strings.Contains(string(out3), "Antigravity IDE") {
-			return true
-		}
-		return false
+		return winIsAnyProcessRunning([]string{
+			"language_server.exe",
+			"Antigravity.exe",
+			"Antigravity IDE.exe",
+		}, os.Getpid())
 	}
 
 	// Linux / macOS
@@ -103,9 +95,9 @@ func RestartLanguageServerOnly() (int, error) {
 	selfPID := os.Getpid()
 
 	if runtime.GOOS == "windows" {
-		_ = exec.Command("taskkill", "/F", "/IM", "language_server.exe").Run()
-		time.Sleep(500 * time.Millisecond)
-		return 1, nil
+		n := winTerminateProcessesByNames([]string{"language_server.exe"}, true, selfPID)
+		time.Sleep(300 * time.Millisecond)
+		return n, nil
 	}
 
 	outLS, _ := exec.Command("pgrep", "-f", "language_server").Output()
@@ -128,15 +120,14 @@ func KillAntigravityProcesses() (int, error) {
 	selfPID := os.Getpid()
 
 	if runtime.GOOS == "windows" {
-		_ = exec.Command("taskkill", "/F", "/IM", "language_server.exe").Run()
-		_ = exec.Command("taskkill", "/F", "/IM", "agy.exe").Run()
+		names := []string{"language_server.exe", "agy.exe"}
 		// Protect active IDE window if running inside an integrated IDE terminal / subagent session
 		if os.Getenv("VSCODE_PID") == "" && os.Getenv("ANTIGRAVITY_PROTECT_PID") == "" && os.Getenv("TERM_PROGRAM") == "" {
-			_ = exec.Command("taskkill", "/F", "/IM", "Antigravity.exe").Run()
-			_ = exec.Command("taskkill", "/F", "/IM", "Antigravity IDE.exe").Run()
+			names = append(names, "Antigravity.exe", "Antigravity IDE.exe")
 		}
-		time.Sleep(500 * time.Millisecond)
-		return 1, nil
+		n := winTerminateProcessesByNames(names, true, selfPID)
+		time.Sleep(300 * time.Millisecond)
+		return n, nil
 	}
 
 	// 1. Terminate language_server processes

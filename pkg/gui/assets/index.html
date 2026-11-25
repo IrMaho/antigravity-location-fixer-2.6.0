@@ -517,6 +517,20 @@
         </div>
       </div>
 
+      <!-- Multi-Account / Profile Scope Selector Section -->
+      <div class="field-group">
+        <div class="field-label">
+          <span>👥 Multi-Account Profiles Scope:</span>
+          <span id="profilesCountBadge" style="color:#00FF9F; font-size:9.5px;">👥 در حال شمارش اکانت‌ها...</span>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <select id="profileScopeSelect" class="field-input" style="flex:1; cursor:pointer;" onchange="onProfileScopeChanged()">
+            <option value="all" selected>🌐 تمام پروفایل‌های منیجر (اعمال خودکار روی همه اکانت‌ها)</option>
+            <option value="primary">👤 فقط اکانت اصلی (Primary Profile Only)</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Status Output Indicator Box -->
       <div class="field-group">
         <div class="field-label">
@@ -912,6 +926,24 @@
           chkPrivacy.checked = data.wrapper_active;
         }
 
+        if (typeof data.managed_profiles_count !== 'undefined') {
+          const badge = document.getElementById('profilesCountBadge');
+          const sel = document.getElementById('profileScopeSelect');
+          if (badge) {
+            if (data.managed_profiles_count > 0) {
+              const unp = data.managed_profiles_unpatched || 0;
+              badge.innerText = `👥 ${data.managed_profiles_count} اکانت منیجر (${unp} نیازمند پچ)`;
+              badge.style.color = unp > 0 ? '#fbbf24' : '#4ade80';
+            } else {
+              badge.innerText = '👤 فقط اکانت پیش‌فرض سیستم';
+              badge.style.color = '#94a3b8';
+            }
+          }
+          if (sel && data.profile_scope) {
+            sel.value = data.profile_scope;
+          }
+        }
+
         if (data.detected) {
           detectedBadge.innerText = '✔ [ AUTO-DETECTED ]';
           detectedBadge.style.color = '#4ade80';
@@ -963,6 +995,18 @@
       }
     }
 
+    function onProfileScopeChanged() {
+      const sel = document.getElementById('profileScopeSelect');
+      const val = sel ? sel.value : 'all';
+      fetch('/api/profile-scope', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: val })
+      }).then(r => r.json()).then(res => {
+        addLog('info', `دامنه اعمال پچ تغییر یافت: ${val === 'all' ? 'تمام پروفایل‌های منیجر (خودکار)' : 'فقط اکانت اصلی'}`);
+      }).catch(() => {});
+    }
+
     // Patch Action (Step 1)
     async function actionPatch() {
       soundBeep(880, 0.12);
@@ -970,7 +1014,8 @@
       addLog('info', 'شروع عملیات پچ اهداف ادیتور و ریست کش سهمیه...');
       const p = getCurrentPath();
       const mode = getNetworkMode();
-      let url = '/api/patch?mode=' + encodeURIComponent(mode);
+      const scope = document.getElementById('profileScopeSelect') ? document.getElementById('profileScopeSelect').value : 'all';
+      let url = '/api/patch?mode=' + encodeURIComponent(mode) + '&scope=' + encodeURIComponent(scope);
       if (p) url += '&path=' + encodeURIComponent(p);
       try {
         const res = await fetch(url, { method: 'POST' });

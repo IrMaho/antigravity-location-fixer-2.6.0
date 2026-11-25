@@ -44,6 +44,11 @@ func FindVsCodeExtension() string {
 		)
 	}
 
+	// Custom configured IDE path (settings.json / ANTIGRAVITY_IDE_EXE), Registry, and mounted drives
+	for _, customDir := range FindCustomAndDriveInstallDirs() {
+		candidateDirs = append(candidateDirs, filepath.Join(customDir, "resources", "app", "extensions"))
+	}
+
 	// Dynamic candidate discovery from running Language Server
 	if runningLs := FindRunningLanguageServer(nil); runningLs != "" {
 		lsDir := filepath.Dir(runningLs)
@@ -186,8 +191,7 @@ func PatchVsCodeExtension(extPath string) (string, error) {
 		return fmt.Sprintf("Self-healed VS Code extension %s (repaired IDE view return object)", filepath.Base(filepath.Dir(extPath))), nil
 	}
 
-	isAlreadyPatched := (strings.Contains(content, channelPatched) || strings.Contains(content, channelPatchedMin) || strings.Contains(content, "let Pc=false")) &&
-		strings.Contains(content, "Skipping version check and re-download") &&
+	isAlreadyPatched := strings.Contains(content, "Skipping version check and re-download") &&
 		strings.Contains(content, "installPath:__p")
 	if isAlreadyPatched {
 		return fmt.Sprintf("Already patched: %s", filepath.Base(filepath.Dir(extPath))), nil
@@ -204,7 +208,7 @@ func PatchVsCodeExtension(extPath string) (string, error) {
 
 	// Apply Part 2: Re-download guard injection (supports unminified and minified)
 	guardApplied := strings.Contains(patched, "Skipping version check and re-download")
-	if downloadGuardTarget.MatchString(patched) {
+	if !guardApplied && downloadGuardTarget.MatchString(patched) {
 		patched = downloadGuardTarget.ReplaceAllString(patched, "$1\n"+downloadGuardCode)
 		guardApplied = true
 	}
